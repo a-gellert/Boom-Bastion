@@ -1,17 +1,19 @@
 -- gui/hud/hud.gui_script
--- M0 HUD: title plate, build badge, hint, pause overlay. Nodes are created in code so the
--- M2/M3 layout can grow without hand-editing .gui files.
+-- M1 HUD: title, look-dev badge, coin pill, pause button, unit bar, pause overlay.
+-- Nodes are created in code so the layout can grow without hand-editing .gui files.
 
 local i18n = require("lua_modules.i18n")
 local audio = require("lua_modules.audio")
 
 local WHITE = vmath.vector4(1, 1, 1, 1)
 local GOLD = vmath.vector4(0.98, 0.76, 0.22, 1)
+local CREAM = vmath.vector4(0.98, 0.94, 0.85, 1)
 local DIM = vmath.vector4(0.03, 0.05, 0.10, 0.62)
-local PLATE = vmath.vector4(0.05, 0.08, 0.16, 0.28)
-local SOFT = vmath.vector4(0.86, 0.92, 1.0, 0.95)
+local SOFT = vmath.vector4(0.90, 0.94, 1.0, 0.95)
 
-local function make_box(self, x, y, w, h, color)
+local UNIT_SLOTS = { "bombardier", "triplet", "engineer", "sniper" }
+
+local function box(self, x, y, w, h, color)
 	local node = gui.new_box_node(vmath.vector3(x, y, 0), vmath.vector3(w, h, 0))
 	gui.set_texture(node, "game")
 	gui.play_flipbook(node, "white_pixel")
@@ -19,7 +21,18 @@ local function make_box(self, x, y, w, h, color)
 	return node
 end
 
-local function make_text(self, font, value, x, y, color, scale)
+local function icon(self, image, x, y, w, h)
+	local node = gui.new_box_node(vmath.vector3(x, y, 0), vmath.vector3(w, h, 0))
+	gui.set_texture(node, "game")
+	gui.play_flipbook(node, image)
+	return node
+end
+
+local function slice9(node, m)
+	gui.set_slice9(node, vmath.vector4(m, m, m, m))
+end
+
+local function text(self, font, value, x, y, color, scale)
 	local node = gui.new_text_node(vmath.vector3(x, y, 0), value)
 	gui.set_font(node, font)
 	gui.set_color(node, color or WHITE)
@@ -34,25 +47,45 @@ function init(self)
 	self.paused = false
 	self.overlay = {}
 
-	local title_plate = make_box(self, 640, 636, 640, 132, PLATE)
-	self.title = make_text(self, "title", i18n.t("app_title"), 640, 646, WHITE)
+	-- title block
+	self.title = text(self, "title", i18n.t("app_title"), 640, 662, WHITE)
 	gui.set_scale(self.title, vmath.vector3(0.86, 0.86, 1))
+	self.tagline = text(self, "label", i18n.t("tagline"), 640, 612, CREAM, 0.82)
+	self.badge = text(self, "body", i18n.t("m1_badge"), 640, 570, GOLD)
+	self.hint = text(self, "body", i18n.t("hint_fire"), 640, 112, SOFT)
+	self.keep_blue = text(self, "label", i18n.t("keep_blue"), 250, 620, CREAM, 0.62)
+	self.keep_red = text(self, "label", i18n.t("keep_red"), 1030, 620, CREAM, 0.62)
 
-	self.badge = make_text(self, "label", i18n.t("m0_badge"), 640, 574, GOLD)
-	self.hint = make_text(self, "body", i18n.t("m0_hint"), 640, 60, SOFT)
-	self.footer = make_text(self, "body", i18n.t("footer"), 640, 26, vmath.vector4(0.82, 0.88, 0.95, 0.7), 0.78)
-	self.esc = make_text(self, "body", i18n.t("esc_pause"), 1170, 696, vmath.vector4(1, 1, 1, 0.72), 0.8)
+	-- coin pill
+	local pill = icon(self, "ui_pill", 92, 686, 124, 46)
+	slice9(pill, 14)
+	icon(self, "ui_coin", 48, 686, 30, 30)
+	text(self, "body", "0", 92, 686, CREAM)
 
-	-- Pause overlay (hidden until Esc)
-	local dim = make_box(self, 640, 360, 1280, 720, DIM)
-	local pause_title = make_text(self, "title", i18n.t("paused"), 640, 400, WHITE)
-	local pause_hint = make_text(self, "label", i18n.t("resume_hint"), 640, 320, GOLD)
+	-- pause button
+	local pause_btn = icon(self, "ui_btn_dark", 1232, 686, 60, 60)
+	slice9(pause_btn, 14)
+	icon(self, "ui_pause", 1232, 686, 30, 30)
+
+	-- unit bar
+	local bar = icon(self, "ui_panel", 640, 56, 560, 96)
+	slice9(bar, 18)
+	local sel = icon(self, "ui_btn_gold", 490, 58, 86, 86)
+	slice9(sel, 14)
+	for i, unit in ipairs(UNIT_SLOTS) do
+		local x = 490 + (i - 1) * 80
+		icon(self, "portrait_" .. unit, x, 58, 68, 68)
+		text(self, "body", tostring(i), x, 18, WHITE)
+	end
+
+	-- pause overlay
+	local dim = box(self, 640, 360, 1280, 720, DIM)
+	local pause_title = text(self, "title", i18n.t("paused"), 640, 400, WHITE)
+	local pause_hint = text(self, "label", i18n.t("resume_hint"), 640, 320, GOLD)
 	for _, node in ipairs({ dim, pause_title, pause_hint }) do
 		gui.set_enabled(node, false)
 		table.insert(self.overlay, node)
 	end
-
-	self.title_plate = title_plate
 
 	gui.animate(self.title, "scale", vmath.vector3(1, 1, 1), gui.EASING_OUTBACK, 0.45, 0.05)
 end

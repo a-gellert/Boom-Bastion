@@ -13,8 +13,8 @@ the enemy garrison.
 
 | Milestone | What it is | State |
 | --- | --- | --- |
-| **M0** | Cleanup + buildable skeleton | current |
-| M1 | Procedural art pack + look-dev frame | next |
+| **M0** | Cleanup + buildable skeleton | done |
+| **M1** | Procedural art pack + look-dev frame | current |
 | M2 | Core battle: segmented walls, Pull & Release, gates, collapse | planned |
 | M3 | 8 units, 6 gates, AI, biomes, levels 1–10 | planned |
 | M4 | Perks, meta progression, hotseat, levels 11–30 | planned |
@@ -39,7 +39,7 @@ powershell -ExecutionPolicy Bypass -File tools/smoke.ps1 -Steps "wait:6;shot:boo
 ```
 
 Bob and the JDK come from the installed Defold editor (`C:\Program Files (x86)\Defold`).
-Build output is `bundle/web`, captures go to `captures/` — neither is committed.
+Art is generated (no external packs): `node tools/gen_sprites.js` writes 116 PNGs, `main/assets/game.atlas`, `lua_modules/art_sizes.lua` and a contact sheet at `captures/art_sheet.png`. Build output is `bundle/web`, captures go to `captures/` — neither is committed.
 
 ## Controls (M0)
 
@@ -76,3 +76,4 @@ references/                  target art sheets (not shipped)
 - Every milestone ends with a working build and a screenshot.
 - No new dependencies without an explicit decision: the target is a 3–5 MB web build.
 - No `update()` scripts on bricks, projectiles or debris — one controller drives them.
+
