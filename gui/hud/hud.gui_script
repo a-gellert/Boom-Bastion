@@ -11,7 +11,8 @@ local CREAM = vmath.vector4(0.98, 0.94, 0.85, 1)
 local DIM = vmath.vector4(0.03, 0.05, 0.10, 0.62)
 local SOFT = vmath.vector4(0.90, 0.94, 1.0, 0.95)
 
-local UNIT_SLOTS = { "bombardier", "triplet", "engineer", "sniper" }
+local UNIT_SLOTS = { "bombardier", "triplet", "driller", "sniper" }
+local UNIT_LABELS = { "BOMB", "TRIPLE", "DRILL", "SNIPER" }
 
 local function box(self, x, y, w, h, color)
 	local node = gui.new_box_node(vmath.vector3(x, y, 0), vmath.vector3(w, h, 0))
@@ -52,9 +53,9 @@ function init(self)
 	gui.set_scale(self.title, vmath.vector3(0.86, 0.86, 1))
 	self.tagline = text(self, "label", i18n.t("tagline"), 640, 612, CREAM, 0.82)
 	self.badge = text(self, "body", i18n.t("m1_badge"), 640, 570, GOLD)
-	self.hint = text(self, "body", i18n.t("hint_fire"), 640, 112, SOFT)
-	self.keep_blue = text(self, "label", i18n.t("keep_blue"), 250, 620, CREAM, 0.62)
-	self.keep_red = text(self, "label", i18n.t("keep_red"), 1030, 620, CREAM, 0.62)
+	self.hint = text(self, "body", i18n.t("hint_fire"), 640, 128, SOFT)
+	self.keep_blue = text(self, "label", i18n.t("keep_blue"), 250, 680, CREAM, 0.62)
+	self.keep_red = text(self, "label", i18n.t("keep_red"), 1030, 680, CREAM, 0.62)
 
 	-- coin pill
 	local pill = icon(self, "ui_pill", 92, 686, 124, 46)
@@ -62,20 +63,23 @@ function init(self)
 	icon(self, "ui_coin", 48, 686, 30, 30)
 	text(self, "body", "0", 92, 686, CREAM)
 
+	-- 2P button
+	local p2 = icon(self, "ui_pill", 1150, 686, 82, 46)
+	slice9(p2, 14)
+	text(self, "body", "2P", 1150, 686, CREAM)
+
 	-- pause button
 	local pause_btn = icon(self, "ui_btn_dark", 1232, 686, 60, 60)
 	slice9(pause_btn, 14)
 	icon(self, "ui_pause", 1232, 686, 30, 30)
 
-	-- unit bar
-	local bar = icon(self, "ui_panel", 640, 56, 560, 96)
-	slice9(bar, 18)
-	local sel = icon(self, "ui_btn_gold", 490, 58, 86, 86)
-	slice9(sel, 14)
+	-- unit buttons
 	for i, unit in ipairs(UNIT_SLOTS) do
-		local x = 490 + (i - 1) * 80
-		icon(self, "portrait_" .. unit, x, 58, 68, 68)
-		text(self, "body", tostring(i), x, 18, WHITE)
+		local x = 492 + (i - 1) * 92
+		local btn = icon(self, (i == 1) and "ui_btn_gold" or "ui_btn_dark", x, 64, 88, 88)
+		slice9(btn, 14)
+		icon(self, "portrait_" .. unit, x, 66, 68, 68)
+		text(self, "body", UNIT_LABELS[i], x, 18, WHITE, 0.56)
 	end
 
 	-- pause overlay
@@ -109,3 +113,5 @@ function on_message(self, message_id, message, sender)
 		end
 	end
 end
+
+

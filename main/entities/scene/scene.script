@@ -1,6 +1,6 @@
 -- main/entities/scene/scene.script
--- M1 look-dev frame: real generated sprites, segmented castle grid, layered units,
--- gate, trajectory and a HUD-ready composition. Gameplay arrives in M2.
+-- M1 look-dev frame: generated art, open castle rooms on balconies, tilted keeps,
+-- decor, gate, impact and a HUD-ready composition. Gameplay arrives in M2.
 
 local art_sizes = require("lua_modules.art_sizes")
 
@@ -8,16 +8,19 @@ local GROUND_Y = 145
 local CASTLE_BOTTOM = 200
 local CELL_W = 25
 local CELL_H = 21
-local ROOM_W = 4
-local ROOM_H = 4
 local COLS = 12
 local ROWS = 12
+local ROOM_W = 4
+local ROOM_H = 4
+local CASTLE_SCALE = 1.08
 
 local SKY_TOP = vmath.vector4(0.56, 0.72, 0.91, 1)
 local SKY_BOTTOM = vmath.vector4(1.0, 0.85, 0.66, 1)
 local SUN = vmath.vector4(1.0, 0.89, 0.64, 1)
 local SUN_GLOW = vmath.vector4(1.0, 0.79, 0.42, 0.55)
+local HAZE = vmath.vector4(1.0, 0.70, 0.38, 0.32)
 local CLOUD = vmath.vector4(1, 1, 1, 0.95)
+local HILL_BACK = vmath.vector4(0.74, 0.82, 0.90, 0.55)
 local HILL_FAR = vmath.vector4(0.62, 0.73, 0.84, 1)
 local HILL_NEAR = vmath.vector4(0.42, 0.66, 0.34, 1)
 local GRASS = vmath.vector4(0.50, 0.75, 0.25, 1)
@@ -35,9 +38,9 @@ local function parabola(x)
 	return -0.0004638 * x * x + 0.40656 * x + 329.77
 end
 
-local function room_center(x0, cc, rr)
-	return x0 + cc * ROOM_W * CELL_W + ROOM_W * CELL_W * 0.5,
-		CASTLE_BOTTOM + rr * ROOM_H * CELL_H + ROOM_H * CELL_H * 0.5
+local function room_center(cc, rr)
+	return cc * ROOM_W * CELL_W + ROOM_W * CELL_W * 0.5 - 150,
+		rr * ROOM_H * CELL_H + 44
 end
 
 local UNIT_SPOTS = {
@@ -48,7 +51,6 @@ local ENEMY_SPOTS = {
 }
 
 function init(self)
-	self.ids = {}
 	local count = 0
 	local function spawn(anim, x, y, z, w, h, tint, rot)
 		local id = factory.create("#placeholder_factory", vmath.vector3(x, y, z))
@@ -59,24 +61,26 @@ function init(self)
 			go.set(url, "tint", tint)
 		end
 		go.set_scale(vmath.vector3(w / base[1], h / base[2], 1), id)
-		if rot then
+		if rot and rot ~= 0 then
 			go.set_rotation(vmath.quat_rotation_z(math.rad(rot)), id)
 		end
 		count = count + 1
 		return id
 	end
 
-	-- sky + sun + clouds
+	-- sky, sun, haze, clouds
 	spawn("white_pixel", 640, 360, -0.99, 1800, 950, SKY_TOP)
 	spawn("bg_gradient", 640, 360, -0.98, 1800, 950, SKY_BOTTOM)
 	spawn("fx_glow", 1010, 560, -0.97, 280, 280, SUN_GLOW)
 	spawn("circle", 1010, 560, -0.965, 100, 100, SUN)
+	spawn("fx_glow", 640, 235, -0.95, 1300, 320, HAZE)
 	spawn("fx_cloud", 280, 620, -0.96, 240, 100, CLOUD)
 	spawn("fx_cloud", 810, 650, -0.96, 190, 80, CLOUD)
 	spawn("fx_cloud", 1130, 515, -0.96, 150, 62, CLOUD)
 
-	-- rolling hills + ground
-	spawn("bg_hills_far", 640, 260, -0.94, 1800, 260, HILL_FAR)
+	-- three depth layers of hills + ground
+	spawn("bg_hills_far", 640, 300, -0.946, 1900, 280, HILL_BACK)
+	spawn("bg_hills_far", 640, 250, -0.94, 1800, 260, HILL_FAR)
 	spawn("bg_hills_near", 640, 180, -0.93, 1800, 190, HILL_NEAR)
 	spawn("white_pixel", 640, 45, -0.92, 1800, 200, GRASS)
 	spawn("white_pixel", 640, GROUND_Y, -0.915, 1800, 14, GRASS_TOP)
@@ -92,105 +96,104 @@ function init(self)
 	spawn("bg_bird", 390, 588, -0.955, 14, 7, WHITE)
 	spawn("bg_bird", 900, 640, -0.955, 16, 8, WHITE)
 
-	local function build_castle(x0, team, gear_ids, spots)
+	local function build_castle(x0, team, gear_ids, spots, tilt)
 		local brick = (team == "blue") and "brick_blue_" or "brick_red_"
+		local ax, ay = x0 + 150, CASTLE_BOTTOM
+		local ca, sa = math.cos(tilt), math.sin(tilt)
+		local tilt_deg = math.deg(tilt)
+
+		local function place(anim, ox, oy, z, w, h, tint, extra_rot)
+			local sx, sy = ox * CASTLE_SCALE, oy * CASTLE_SCALE
+			local rx = sx * ca - sy * sa
+			local ry = sx * sa + sy * ca
+			return spawn(anim, ax + rx, ay + ry, z, w * CASTLE_SCALE, h * CASTLE_SCALE, tint, tilt_deg + (extra_rot or 0))
+		end
+
+		local function cell_x(c) return c * CELL_W + CELL_W * 0.5 - 150 end
+		local function cell_y(r) return r * CELL_H + CELL_H * 0.5 end
+
 		for r = 0, ROWS - 1 do
 			for c = 0, COLS - 1 do
 				local state = ((r * 13 + c * 7 + (team == "red" and 5 or 0)) % 19 == 0) and 1 or 0
 				local breach = (team == "red" and c <= 1 and r >= 4 and r <= 6)
+				local armored = (team == "red" and r >= 8 and (c == 1 or c == 4 or c == 9)) and true or false
 				if not breach then
-					spawn(brick .. state,
-						x0 + c * CELL_W + CELL_W * 0.5,
-						CASTLE_BOTTOM + r * CELL_H + CELL_H * 0.5,
-						-0.75 + r * 0.002 + c * 0.0001,
-						CELL_W + 1, CELL_H + 1, WHITE)
+					local anim = armored and "brick_steel_0" or (brick .. state)
+					place(anim, cell_x(c), cell_y(r), -0.75 + r * 0.002 + c * 0.0001,
+						CELL_W + 1, CELL_H + 1, WHITE, 0)
 				end
 			end
 		end
 
-		-- dark room openings (the base centre is a door, the top centre is solid)
+		-- open rooms with balconies
 		for rr = 0, 2 do
 			for cc = 0, 2 do
 				if not (rr == 0 and cc == 1) and not (rr == 2 and cc == 1) then
-					local cx, cy = room_center(x0, cc, rr)
-					spawn("room_dark", cx, cy + 2, -0.72, 66, 50, WHITE)
+					local ox, oy = room_center(cc, rr)
+					place("room_open", ox, oy, -0.72, 84, 60, WHITE, 0)
+					place("balcony", ox, oy - 28, -0.615, 100, 14, WHITE, 0)
 				end
 			end
 		end
 
-		-- door + structural posts
-		spawn("door", x0 + 150, CASTLE_BOTTOM + 36, -0.715, 56, 72, WHITE)
-		spawn("post_wood", x0 + 100, CASTLE_BOTTOM + 126, -0.714, 18, 252, WHITE)
-		spawn("post_wood", x0 + 200, CASTLE_BOTTOM + 126, -0.714, 18, 252, WHITE)
-
-		-- floor beams
+		-- door, posts, beams
+		place("door", 0, 36, -0.715, 56, 72, WHITE, 0)
+		place("post_wood", -50, 126, -0.714, 18, 252, WHITE, 0)
+		place("post_wood", 50, 126, -0.714, 18, 252, WHITE, 0)
 		for floor = 0, 3 do
-			for i = 0, 2 do
-				spawn("beam_wood_0",
-					x0 + i * 100 + 50,
-					CASTLE_BOTTOM + floor * ROOM_H * CELL_H,
-					-0.70,
-					100, 16, WHITE)
+			for i = -1, 1 do
+				place("beam_wood_0", i * 100, floor * ROOM_H * CELL_H, -0.70, 100, 16, WHITE, 0)
 			end
 		end
 
-		-- roof battlements + central tower + flag
-		-- solid roof deck + side crenellations + central tower
+		-- roof deck, side crenellations, central tower
 		for c = 0, COLS - 1 do
-			spawn(brick .. "0",
-				x0 + c * CELL_W + CELL_W * 0.5,
-				CASTLE_BOTTOM + ROWS * CELL_H + CELL_H * 0.5,
-				-0.69,
-				CELL_W + 1, CELL_H + 1, WHITE)
+			place(brick .. "0", cell_x(c), cell_y(ROWS), -0.69, CELL_W + 1, CELL_H + 1, WHITE, 0)
 		end
 		for _, c in ipairs({ 0, 2, 8, 10 }) do
-			spawn(brick .. "0",
-				x0 + c * CELL_W + CELL_W * 0.5,
-				CASTLE_BOTTOM + (ROWS + 1) * CELL_H + CELL_H * 0.5,
-				-0.69,
-				CELL_W + 1, CELL_H + 1, WHITE)
+			place(brick .. "0", cell_x(c), cell_y(ROWS + 1), -0.69, CELL_W + 1, CELL_H + 1, WHITE, 0)
 		end
-		for r = 0, 2 do
+		for r = 1, 3 do
 			for c = 4, 7 do
-				spawn(brick .. "0",
-					x0 + c * CELL_W + CELL_W * 0.5,
-					CASTLE_BOTTOM + (ROWS + 1 + r) * CELL_H + CELL_H * 0.5,
-					-0.69,
-					CELL_W + 1, CELL_H + 1, WHITE)
+				place(brick .. "0", cell_x(c), cell_y(ROWS + r), -0.69, CELL_W + 1, CELL_H + 1, WHITE, 0)
 			end
 		end
-		for c = 4, 7, 2 do
-			spawn(brick .. "0",
-				x0 + c * CELL_W + CELL_W * 0.5,
-				CASTLE_BOTTOM + (ROWS + 4) * CELL_H + CELL_H * 0.5,
-				-0.69,
-				CELL_W + 1, CELL_H + 1, WHITE)
-		end
-		spawn("flag", x0 + 150, CASTLE_BOTTOM + (ROWS + 5) * CELL_H + 28, -0.68, 30, 40,
-			(team == "blue") and TEAM_BLUE or TEAM_RED)
+		place("roof_" .. ((team == "blue") and "blue" or "red"), 0, (ROWS + 4) * CELL_H + 30, -0.67, 152, 68, WHITE, 0)
+		place("flag", 0, (ROWS + 5) * CELL_H + 50, -0.68, 30, 40,
+			(team == "blue") and TEAM_BLUE or TEAM_RED, 0)
 
-		-- the rolling cart
-		spawn("wheel", x0 + 45, 166, -0.665, 58, 58, WHITE)
-		spawn("wheel", x0 + 255, 166, -0.665, 58, 58, WHITE)
-		spawn("castle_platform", x0 + 150, 184, -0.66, 340, 58, WHITE)
+		-- cart
+		place("wheel", -105, -34, -0.665, 58, 58, WHITE, 0)
+		place("wheel", 105, -34, -0.665, 58, 58, WHITE, 0)
+		place("castle_platform", 0, -16, -0.66, 340, 58, WHITE, 0)
 
-		-- units
+		-- decor
+		place("barrel_0", -110, 30, -0.64, 32, 40, WHITE, 0)
+		place("crate", 70, 30, -0.64, 30, 26, WHITE, 0)
+		local shield = (team == "blue") and "shield_blue" or "shield_red"
+		place(shield, -135, 250, -0.71, 26, 30, WHITE, 0)
+		place(shield, 135, 330, -0.71, 26, 30, WHITE, 0)
+		local banner = (team == "blue") and "banner_blue" or "banner_red"
+		place(banner, 75, 292, -0.67, 30, 64, WHITE, 0)
+		local plank_side = (team == "blue") and -1 or 1
+		place("plank_long", plank_side * 190, 130, -0.60, 190, 16, WHITE, plank_side * 78)
+
+		-- units on the balconies
 		local body_tint = (team == "blue") and TEAM_BLUE or TEAM_RED
 		for i, spot in ipairs(spots) do
-			local cx = x0 + spot.cc * ROOM_W * CELL_W + ROOM_W * CELL_W * 0.5
-			local cy = CASTLE_BOTTOM + spot.rr * ROOM_H * CELL_H + 44
+			local ox, oy = room_center(spot.cc, spot.rr)
 			local z = -0.62 - i * 0.004
-			spawn("fx_shadow", cx, cy - 22, z - 0.002, 50, 13, WHITE)
-			spawn("unit_body", cx, cy, z, 54, 54, body_tint)
-			spawn("gear_" .. gear_ids[i], cx, cy, z + 0.001, 54, 54, WHITE)
-			spawn("eyes_idle", cx, cy + 2, z + 0.002, 30, 15, WHITE)
+			place("fx_shadow", ox, oy - 26, z - 0.002, 56, 14, WHITE, 0)
+			place("unit_body", ox, oy, z, 64, 64, body_tint, 0)
+			place("gear_" .. gear_ids[i], ox, oy, z + 0.001, 64, 64, WHITE, 0)
+			place("eyes_idle", ox, oy + 2, z + 0.002, 36, 18, WHITE, 0)
 		end
 	end
 
-	build_castle(PLAYER_X0, "blue", { "bombardier", "triplet", "engineer", "sniper" }, UNIT_SPOTS)
-	build_castle(ENEMY_X0, "red", { "driller", "pyro", "tank", "barrel" }, ENEMY_SPOTS)
+	build_castle(PLAYER_X0, "blue", { "bombardier", "triplet", "driller", "sniper" }, UNIT_SPOTS, math.rad(-1.0))
+	build_castle(ENEMY_X0, "red", { "driller", "pyro", "tank", "barrel" }, ENEMY_SPOTS, math.rad(2.2))
 
-	-- the x2 gate
+	-- x2 gate
 	self.gate_ring = spawn("gate_x2", GATE_X, GATE_Y, -0.50, 150, 150, WHITE)
 	self.gate_balloon = spawn("balloon_x2", GATE_X, GATE_Y + 105, -0.49, 72, 94, WHITE)
 
@@ -206,8 +209,8 @@ function init(self)
 	-- one bomb entering the gate, two leaving it
 	spawn("proj_bomb", 600, parabola(600), -0.53, 26, 26, WHITE)
 	spawn("fx_smoke", 575, parabola(600) + 4, -0.535, 30, 30, WHITE)
-	spawn("proj_bomb", 740, parabola(740) + 12, -0.53, 24, 24, WHITE)
-	spawn("proj_bomb", 740, parabola(740) - 12, -0.53, 24, 24, WHITE)
+	spawn("proj_bomb", 740, parabola(740) + 14, -0.53, 30, 30, WHITE)
+	spawn("proj_bomb", 740, parabola(740) - 14, -0.53, 30, 30, WHITE)
 	spawn("fx_smoke", 712, parabola(712), -0.535, 28, 28, WHITE)
 
 	-- dotted preview arc through the gate
@@ -228,5 +231,6 @@ function update(self, dt)
 	go.set_position(vmath.vector3(GATE_X, GATE_Y + bob, -0.50), self.gate_ring)
 	go.set_position(vmath.vector3(GATE_X, GATE_Y + 105 + bob, -0.49), self.gate_balloon)
 end
+
 
 

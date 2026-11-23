@@ -907,6 +907,68 @@ make('ui_arrow_right', 26, 26, (cv) => {
   outlined(cv, poly([[9, 4], [17, 13], [9, 22]]), solid(WHITE), 2.2);
 });
 
+// ---------------------------------------------------------------- castle decor
+make('room_open', 84, 60, (cv) => {
+  outlined(cv, rrect(42, 30, 82, 58, 8), solid(hex('#3A2418')), 2);
+  cv.paint(rrect(42, 24, 72, 30, 6), solid(hex('#28170F')));
+  cv.paint(capsule(20, 20, 20, 44, 1), withAlpha(hex('#5A3A24'), 0.5));
+  cv.paint(capsule(64, 20, 64, 44, 1), withAlpha(hex('#5A3A24'), 0.5));
+  cv.paint(circle(64, 32, 2.2), withAlpha(PAL.goldTop, 0.55));
+  cv.paint(rrect(42, 50, 72, 10, 3), vgrad(PAL.woodTop, PAL.woodBot, 60));
+  cv.paint(rrect(42, 45, 64, 2.5, 1), solid(PAL.woodDark));
+  cv.paint(rrect(42, 11, 54, 2, 1), withAlpha(WHITE, 0.08));
+});
+make('balcony', 100, 14, (cv) => {
+  outlined(cv, rrect(50, 7, 98, 12, 4), vgrad(PAL.woodTop, PAL.woodBot, 14), 2);
+  for (const x of [14, 50, 86]) cv.paint(circle(x, 10, 2.1), solid(PAL.steelDark));
+  cv.paint(rrect(50, 3, 80, 2, 1), withAlpha(WHITE, 0.35));
+});
+function shieldSprite(name, top, bot) {
+  make(name, 26, 30, (cv) => {
+    const pts = [[3, 5], [23, 5], [23, 16], [13, 28], [3, 16]];
+    outlined(cv, poly(pts), vgrad(top, bot, 30), 2);
+    cv.paint(starShape(13, 13, 5, 2, 5), solid(PAL.goldTop));
+    cv.paint(circle(13, 13, 1.4), withAlpha(WHITE, 0.7));
+  });
+}
+shieldSprite('shield_blue', PAL.blueTop, PAL.blueBot);
+shieldSprite('shield_red', PAL.redTop, PAL.redBot);
+function bannerSprite(name, top, bot) {
+  make(name, 32, 66, (cv) => {
+    outlined(cv, capsule(6, 6, 6, 62, 2), solid(PAL.steelDark), 1.6);
+    outlined(cv, poly([[8, 8], [30, 12], [8, 44]]), vgrad(top, bot, 66), 2);
+    cv.paint(starShape(16, 20, 4, 1.8, 4), solid(PAL.goldTop));
+    cv.paint(circle(30, 6, 1.8), solid(PAL.goldTop));
+  });
+}
+bannerSprite('banner_blue', PAL.blueTop, PAL.blueBot);
+bannerSprite('banner_red', PAL.redTop, PAL.redBot);
+make('plank_long', 190, 16, (cv) => {
+  outlined(cv, rrect(95, 8, 188, 14, 4), vgrad(PAL.woodTop, PAL.woodBot, 16), 2);
+  cv.paint(rrect(95, 4, 170, 3, 1.5), withAlpha(WHITE, 0.3));
+  for (const x of [20, 95, 170]) cv.paint(circle(x, 8, 2.4), solid(PAL.steelDark));
+  cv.paint(capsule(40, 9, 80, 9, 0.8), withAlpha(PAL.woodDark, 0.6));
+});
+make('crate', 30, 26, (cv) => {
+  outlined(cv, rrect(15, 13, 28, 24, 4), vgrad(PAL.woodTop, PAL.woodBot, 26), 2);
+  cv.paint(capsule(5, 5, 25, 21, 1.4), solid(PAL.woodDark));
+  cv.paint(capsule(5, 21, 25, 5, 1.4), solid(PAL.woodDark));
+  for (const [x, y] of [[5, 5], [25, 5], [5, 21], [25, 21]]) cv.paint(circle(x, y, 1.6), solid(PAL.steelTop));
+});
+
+function roofSprite(name, top, bot) {
+  make(name, 120, 54, (cv) => {
+    const pts = [[6, 44], [60, 8], [114, 44]];
+    outlined(cv, poly(pts), vgrad(top, bot, 54), 3);
+    cv.paint(capsule(18, 39, 58, 13, 2), withAlpha(WHITE, 0.28));
+    cv.paint(capsule(62, 13, 102, 39, 2), withAlpha(WHITE, 0.28));
+    cv.paint(rrect(60, 44, 108, 8, 3), solid(PAL.woodDark));
+    cv.paint(circle(60, 10, 3), solid(PAL.goldTop));
+    cv.paint(circle(60, 10, 1.2), withAlpha(WHITE, 0.7));
+  });
+}
+roofSprite('roof_blue', PAL.blueTop, PAL.blueDark);
+roofSprite('roof_red', PAL.redTop, PAL.redDark);
 // ---------------------------------------------------------------- output
 fs.mkdirSync(ART, { recursive: true });
 fs.mkdirSync(path.dirname(SHEET), { recursive: true });
@@ -976,5 +1038,6 @@ console.log(`sprites: ${sprites.length}`);
 console.log(`output:  ${ART}`);
 console.log(`atlas:   ${ATLAS}`);
 console.log(`sheet:   ${SHEET}`);
+
 
 
