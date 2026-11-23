@@ -15,8 +15,8 @@ M.GRAVITY = 1500
 M.MAX_PULL = 230
 M.MIN_PULL = 18
 M.DEAD_ZONE = 20
-M.MAX_SPEED = 1250
-M.MIN_SPEED = 220
+M.MAX_SPEED = 1450
+M.MIN_SPEED = 260
 M.PREVIEW_FRACTION = 0.62
 M.PROJECTILE_STEP = 1 / 240
 M.PROJECTILE_RADIUS = 10
@@ -48,6 +48,34 @@ M.STATE_ENEMY = "enemy"
 M.STATE_PERK = "perk"
 M.STATE_OVER = "over"
 
+-- M2 combat layout (one cell = one brick)
+M.CELL_W = 26
+M.CELL_H = 22
+M.CASTLE_COLS = 12
+M.CASTLE_ROWS = 12
+M.ROOM_CELLS = 4
+M.CASTLE_BOTTOM = 200
+M.PLAYER_X0 = 80
+M.ENEMY_X0 = 888
+M.PLAYER_TILT = math.rad(-1)
+M.ENEMY_TILT = math.rad(2.2)
+M.UNIT_SIZE = 52
+M.UNIT_HIT_R = 20
+
+M.BRICK_HP = {
+	blue = 45, red = 45, wood = 30, stone = 60, steel = 105, barrel = 15,
+}
+M.BRICK_RESIST = {
+	stone = 1.25, steel = 1.5,
+}
+M.CRUSH_DAMAGE = 30
+M.BARREL_BLAST = { radius = 85, wall = 70, unit = 45 }
+
+M.AI_DELAY = 0.7
+M.TURN_DELAY = 0.6
+M.HITSTOP = 0.045
+
+
 function M.log(...)
 	local parts = { ... }
 	for i = 1, #parts do
@@ -57,3 +85,4 @@ function M.log(...)
 end
 
 return M
+

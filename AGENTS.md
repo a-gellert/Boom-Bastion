@@ -17,8 +17,8 @@
 
 ## Code map
 - `main/main.script` — orchestrator: match state machine, input routing, messages.
-- `lua_modules/` — pure rules and data: constants, camera, i18n, audio, and from M2 castle/walls/ballistics/AI.
-- `main/entities/` — visual containers only. Bricks, projectiles and debris have no `update()`; the controller drives them.
+- `lua_modules/` — pure rules and data: constants, camera, i18n, audio, castle, segmented_wall, ballistics, ai, units_db, battle.
+- `main/entities/sprite/` — one generic sprite entity. Bricks, projectiles, debris, gates and units are all scriptless sprites driven by battle.lua.
 - `gui/hud/` — HUD nodes are created in code (no hand-edited .gui node trees beyond fonts/textures).
 - Everything tuning-related lives in `lua_modules/constants.lua` and `*_db.lua` files.
 

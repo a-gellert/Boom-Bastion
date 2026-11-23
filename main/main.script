@@ -1,11 +1,11 @@
 -- main/main.script
--- Bastion Blast orchestrator. M0: boot, camera, HUD handshake, pause.
--- M2 grows the battle state machine here (AIM → FLYING → RESOLVE → ENEMY → ...).
+-- Boot, camera and input routing. The battle lives in lua_modules/battle.lua.
 
 local constants = require("lua_modules.constants")
 local camera = require("lua_modules.camera_controller")
 local audio = require("lua_modules.audio")
 local i18n = require("lua_modules.i18n")
+local battle = require("lua_modules.battle")
 
 function init(self)
 	math.randomseed(os.time())
@@ -19,21 +19,27 @@ function init(self)
 	camera.init()
 	camera.reset(constants.SCREEN_WIDTH * 0.5, constants.SCREEN_HEIGHT * 0.5)
 
-	msg.post("/gui_hud#gui", "hud_show", { mode = "boot" })
-	audio.on_game_loaded()
-	audio.music("music_menu")
+	battle.init(self)
 
-	constants.log("boot ok · lang=" .. i18n.current_lang .. " · mode=" .. tostring(sys.get_config_string("sdk.target", "mock")))
+	audio.on_game_loaded()
+	audio.music("music_battle")
+
+	constants.log("boot ok · lang=" .. i18n.current_lang .. " · battle M2")
 end
 
 function update(self, dt)
+	battle.update(self, dt)
 	camera.update(dt)
 end
 
 function on_input(self, action_id, action)
 	if action_id == hash("escape") and action.pressed then
-		msg.post("/gui_hud#gui", "toggle_pause")
+		battle.toggle_pause(self)
 		return true
 	end
-	return false
+	return battle.on_input(self, action_id, action)
+end
+
+function on_message(self, message_id, message, sender)
+	battle.on_message(self, message_id, message, sender)
 end

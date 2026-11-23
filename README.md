@@ -14,8 +14,8 @@ the enemy garrison.
 | Milestone | What it is | State |
 | --- | --- | --- |
 | **M0** | Cleanup + buildable skeleton | done |
-| **M1** | Procedural art pack + look-dev frame | current |
-| M2 | Core battle: segmented walls, Pull & Release, gates, collapse | planned |
+| **M1** | Procedural art pack + look-dev frame | done |
+| **M2** | Core battle: segmented walls, Pull & Release, gates, collapse | current |
 | M3 | 8 units, 6 gates, AI, biomes, levels 1–10 | planned |
 | M4 | Perks, meta progression, hotseat, levels 11–30 | planned |
 | M5 | Polish, i18n, Poki hooks, performance | planned |
@@ -41,12 +41,14 @@ powershell -ExecutionPolicy Bypass -File tools/smoke.ps1 -Steps "wait:6;shot:boo
 Bob and the JDK come from the installed Defold editor (`C:\Program Files (x86)\Defold`).
 Art is generated (no external packs): `node tools/gen_sprites.js` writes 116 PNGs, `main/assets/game.atlas`, `lua_modules/art_sizes.lua` and a contact sheet at `captures/art_sheet.png`. Build output is `bundle/web`, captures go to `captures/` — neither is committed.
 
-## Controls (M0)
+## Controls (M2)
 
 | Action | Input |
 | --- | --- |
 | Pause | `Esc` |
-| Aim / fire | Pull & Release — arrives in M2 |
+| Aim / fire | Press anywhere, pull back, release |
+| Select unit | click a unit button or `1`–`4` |
+| Debug | `F9` blast the enemy base, `F10` win (debug builds) |
 
 ## Layout
 

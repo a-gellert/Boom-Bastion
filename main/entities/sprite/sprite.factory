@@ -1,0 +1,2 @@
+prototype: "/main/entities/sprite/sprite.go"
+load_dynamically: false

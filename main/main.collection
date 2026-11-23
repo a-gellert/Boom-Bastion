@@ -10,15 +10,6 @@ instances {
   }
 }
 instances {
-  id: "scene"
-  prototype: "/main/entities/scene/scene.go"
-  position {
-    x: 0.0
-    y: 0.0
-    z: 0.0
-  }
-}
-instances {
   id: "gui_hud"
   prototype: "/gui/hud/hud.go"
   position {

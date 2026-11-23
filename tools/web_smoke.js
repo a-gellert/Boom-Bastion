@@ -177,6 +177,16 @@ srv.listen(PORT, '127.0.0.1', async () => {
         await sleep(120);
         await mouse('mouseReleased', n[2], n[3]);
         await sleep(150);
+      } else if (cmd === 'press') {
+        await mouse('mouseMoved', n[0], n[1]);
+        await mouse('mousePressed', n[0], n[1]);
+        await sleep(120);
+      } else if (cmd === 'move') {
+        await mouse('mouseMoved', n[0], n[1]);
+        await sleep(120);
+      } else if (cmd === 'release') {
+        await mouse('mouseReleased', n[0], n[1]);
+        await sleep(150);
       } else if (cmd === 'key') {
         await key(arg, 'keyDown'); await sleep(60); await key(arg, 'keyUp'); await sleep(120);
       } else if (cmd === 'hold') {

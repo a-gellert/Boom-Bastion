@@ -1,28 +1,28 @@
 -- gui/hud/hud.gui_script
--- M1 HUD: title, look-dev badge, coin pill, pause button, unit bar, pause overlay.
--- Nodes are created in code so the layout can grow without hand-editing .gui files.
+-- Battle HUD: turn banner, unit buttons (with input), damage numbers, pause and result.
 
 local i18n = require("lua_modules.i18n")
 local audio = require("lua_modules.audio")
+local camera = require("lua_modules.camera_controller")
 
 local WHITE = vmath.vector4(1, 1, 1, 1)
 local GOLD = vmath.vector4(0.98, 0.76, 0.22, 1)
 local CREAM = vmath.vector4(0.98, 0.94, 0.85, 1)
-local DIM = vmath.vector4(0.03, 0.05, 0.10, 0.62)
 local SOFT = vmath.vector4(0.90, 0.94, 1.0, 0.95)
+local DIM = vmath.vector4(0.03, 0.05, 0.10, 0.66)
 
 local UNIT_SLOTS = { "bombardier", "triplet", "driller", "sniper" }
 local UNIT_LABELS = { "BOMB", "TRIPLE", "DRILL", "SNIPER" }
 
-local function box(self, x, y, w, h, color)
+local function box(x, y, w, h, color, image)
 	local node = gui.new_box_node(vmath.vector3(x, y, 0), vmath.vector3(w, h, 0))
 	gui.set_texture(node, "game")
-	gui.play_flipbook(node, "white_pixel")
-	gui.set_color(node, color)
+	gui.play_flipbook(node, image or "white_pixel")
+	if color then gui.set_color(node, color) end
 	return node
 end
 
-local function icon(self, image, x, y, w, h)
+local function icon(image, x, y, w, h)
 	local node = gui.new_box_node(vmath.vector3(x, y, 0), vmath.vector3(w, h, 0))
 	gui.set_texture(node, "game")
 	gui.play_flipbook(node, image)
@@ -33,79 +33,201 @@ local function slice9(node, m)
 	gui.set_slice9(node, vmath.vector4(m, m, m, m))
 end
 
-local function text(self, font, value, x, y, color, scale)
+local function label(font, value, x, y, color, scale)
 	local node = gui.new_text_node(vmath.vector3(x, y, 0), value)
 	gui.set_font(node, font)
 	gui.set_color(node, color or WHITE)
 	gui.set_pivot(node, gui.PIVOT_CENTER)
-	if scale then
-		gui.set_scale(node, vmath.vector3(scale, scale, 1))
-	end
+	if scale then gui.set_scale(node, vmath.vector3(scale, scale, 1)) end
 	return node
 end
 
-function init(self)
-	self.paused = false
-	self.overlay = {}
-
-	-- title block
-	self.title = text(self, "title", i18n.t("app_title"), 640, 662, WHITE)
-	gui.set_scale(self.title, vmath.vector3(0.86, 0.86, 1))
-	self.tagline = text(self, "label", i18n.t("tagline"), 640, 612, CREAM, 0.82)
-	self.badge = text(self, "body", i18n.t("m1_badge"), 640, 570, GOLD)
-	self.hint = text(self, "body", i18n.t("hint_fire"), 640, 128, SOFT)
-	self.keep_blue = text(self, "label", i18n.t("keep_blue"), 250, 680, CREAM, 0.62)
-	self.keep_red = text(self, "label", i18n.t("keep_red"), 1030, 680, CREAM, 0.62)
-
-	-- coin pill
-	local pill = icon(self, "ui_pill", 92, 686, 124, 46)
-	slice9(pill, 14)
-	icon(self, "ui_coin", 48, 686, 30, 30)
-	text(self, "body", "0", 92, 686, CREAM)
-
-	-- 2P button
-	local p2 = icon(self, "ui_pill", 1150, 686, 82, 46)
-	slice9(p2, 14)
-	text(self, "body", "2P", 1150, 686, CREAM)
-
-	-- pause button
-	local pause_btn = icon(self, "ui_btn_dark", 1232, 686, 60, 60)
-	slice9(pause_btn, 14)
-	icon(self, "ui_pause", 1232, 686, 30, 30)
-
-	-- unit buttons
-	for i, unit in ipairs(UNIT_SLOTS) do
-		local x = 492 + (i - 1) * 92
-		local btn = icon(self, (i == 1) and "ui_btn_gold" or "ui_btn_dark", x, 64, 88, 88)
-		slice9(btn, 14)
-		icon(self, "portrait_" .. unit, x, 66, 68, 68)
-		text(self, "body", UNIT_LABELS[i], x, 18, WHITE, 0.56)
-	end
-
-	-- pause overlay
-	local dim = box(self, 640, 360, 1280, 720, DIM)
-	local pause_title = text(self, "title", i18n.t("paused"), 640, 400, WHITE)
-	local pause_hint = text(self, "label", i18n.t("resume_hint"), 640, 320, GOLD)
-	for _, node in ipairs({ dim, pause_title, pause_hint }) do
-		gui.set_enabled(node, false)
-		table.insert(self.overlay, node)
-	end
-
-	gui.animate(self.title, "scale", vmath.vector3(1, 1, 1), gui.EASING_OUTBACK, 0.45, 0.05)
-end
-
-local function set_overlay(self, enabled)
-	for _, node in ipairs(self.overlay) do
+local function set_enabled_all(nodes, enabled)
+	for _, node in ipairs(nodes) do
 		gui.set_enabled(node, enabled)
 	end
 end
 
+function init(self)
+	msg.post(".", "acquire_input_focus")
+	self.paused = false
+	self.result_open = false
+	self.banner_seq = 0
+
+	-- coins / 2P / pause
+	local pill = icon("ui_pill", 92, 686, 124, 46)
+	slice9(pill, 14)
+	icon("ui_coin", 48, 686, 30, 30)
+	self.coins = label("body", "0", 92, 686, CREAM)
+
+	self.p2_btn = icon("ui_pill", 1150, 686, 82, 46)
+	slice9(self.p2_btn, 14)
+	label("body", "2P", 1150, 686, CREAM)
+
+	self.pause_btn = icon("ui_btn_dark", 1232, 686, 60, 60)
+	slice9(self.pause_btn, 14)
+	icon("ui_pause", 1232, 686, 30, 30)
+
+	-- keep names
+	label("label", i18n.t("keep_blue"), 236, 660, CREAM, 0.62)
+	label("label", i18n.t("keep_red"), 1044, 660, CREAM, 0.62)
+
+	-- turn banner
+	self.banner = icon("ui_pill", 640, 686, 390, 58)
+	slice9(self.banner, 14)
+	self.banner_text = label("label", "", 640, 686, GOLD, 0.9)
+	gui.set_enabled(self.banner, false)
+	gui.set_enabled(self.banner_text, false)
+
+	-- hint
+	self.hint = label("body", i18n.t("hint_aim"), 640, 128, SOFT)
+
+	-- unit buttons
+	self.unit_bg = {}
+	self.unit_portrait = {}
+	self.unit_labels = {}
+	for i, unit in ipairs(UNIT_SLOTS) do
+		local x = 492 + (i - 1) * 92
+		local bg = icon("ui_btn_dark", x, 64, 88, 88)
+		slice9(bg, 14)
+		local portrait = icon("portrait_" .. unit, x, 66, 68, 68)
+		local txt = label("body", UNIT_LABELS[i], x, 18, WHITE, 0.56)
+		self.unit_bg[i] = bg
+		self.unit_portrait[i] = portrait
+		self.unit_labels[i] = txt
+	end
+
+	-- damage numbers
+	self.dmg_nodes = {}
+	self.dmg_index = 0
+	for i = 1, 10 do
+		local n = label("label", "0", 0, 0, WHITE, 0.9)
+		gui.set_enabled(n, false)
+		self.dmg_nodes[i] = n
+	end
+
+	-- pause overlay
+	local pause_dim = box(640, 360, 1280, 720, DIM)
+	local pause_title = label("title", i18n.t("paused"), 640, 400, WHITE)
+	local pause_hint = label("label", i18n.t("resume_hint"), 640, 320, GOLD)
+	self.pause_nodes = { pause_dim, pause_title, pause_hint }
+	set_enabled_all(self.pause_nodes, false)
+
+	-- result overlay
+	local res_dim = box(640, 360, 1280, 720, DIM)
+	self.result_title = label("title", "", 640, 440, GOLD)
+	self.retry_btn = icon("ui_btn_gold", 640, 320, 280, 92)
+	slice9(self.retry_btn, 14)
+	local retry_text = label("label", i18n.t("retry"), 640, 320, WHITE, 0.9)
+	self.result_nodes = { res_dim, self.result_title, self.retry_btn, retry_text }
+	set_enabled_all(self.result_nodes, false)
+end
+
+-- ------------------------------------------------------------------ input
+function on_input(self, action_id, action)
+	if action_id ~= hash("touch") or not action.pressed then
+		return false
+	end
+	if self.result_open then
+		if gui.pick_node(self.retry_btn, action.x, action.y) then
+			audio.play_click()
+			msg.post("/main#main", "restart_battle")
+			return true
+		end
+		return false
+	end
+	for i, bg in ipairs(self.unit_bg) do
+		if gui.pick_node(bg, action.x, action.y) then
+			audio.play_click()
+			msg.post("/main#main", "select_unit", { index = i })
+			return true
+		end
+	end
+	if gui.pick_node(self.pause_btn, action.x, action.y) then
+		audio.play_click()
+		msg.post("/main#main", "toggle_pause")
+		return true
+	end
+	if gui.pick_node(self.p2_btn, action.x, action.y) then
+		return true
+	end
+	return false
+end
+
+-- ------------------------------------------------------------------ messages
 function on_message(self, message_id, message, sender)
-	if message_id == hash("hud_show") then
-		gui.animate(self.title, "scale", vmath.vector3(1, 1, 1), gui.EASING_OUTBACK, 0.45)
-	elseif message_id == hash("toggle_pause") then
-		self.paused = not self.paused
-		set_overlay(self, self.paused)
+	if message_id == hash("hud_state") then
+		local units = message.units or {}
+		for i, row in ipairs(units) do
+			local bg = self.unit_bg[i]
+			if bg then
+				local ready = row.alive and (row.cooldown or 0) == 0
+				local alpha = ready and 1 or 0.38
+				gui.play_flipbook(bg, row.selected and "ui_btn_gold" or "ui_btn_dark")
+				gui.set_slice9(bg, vmath.vector4(14, 14, 14, 14))
+				gui.set_color(bg, vmath.vector4(1, 1, 1, alpha))
+				gui.set_color(self.unit_portrait[i], vmath.vector4(1, 1, 1, alpha))
+				gui.set_color(self.unit_labels[i], vmath.vector4(1, 1, 1, alpha))
+				local s = row.selected and 1.06 or 1.0
+				gui.set_scale(self.unit_portrait[i], vmath.vector3(s, s, 1))
+			end
+		end
+		if message.state == "over" then
+			gui.set_text(self.hint, "")
+		elseif message.state == "flying" or message.state == "resolve" or message.state == "settle" or message.state == "intro" then
+			gui.set_text(self.hint, "")
+		elseif message.turn == "enemy" then
+			gui.set_text(self.hint, i18n.t("hint_enemy"))
+		else
+			gui.set_text(self.hint, i18n.t("hint_aim"))
+		end
+
+	elseif message_id == hash("show_banner") then
+		self.banner_seq = self.banner_seq + 1
+		local seq = self.banner_seq
+		gui.set_text(self.banner_text, message.text or "")
+		gui.set_enabled(self.banner, true)
+		gui.set_enabled(self.banner_text, true)
+		gui.set_scale(self.banner, vmath.vector3(0.82, 0.82, 1))
+		gui.set_scale(self.banner_text, vmath.vector3(0.8, 0.8, 1))
+		gui.animate(self.banner, "scale", vmath.vector3(1, 1, 1), gui.EASING_OUTBACK, 0.24)
+		gui.animate(self.banner_text, "scale", vmath.vector3(0.9, 0.9, 1), gui.EASING_OUTBACK, 0.24)
+		timer.delay(1.35, false, function()
+			if self.banner_seq == seq then
+				gui.set_enabled(self.banner, false)
+				gui.set_enabled(self.banner_text, false)
+			end
+		end)
+
+	elseif message_id == hash("show_damage") then
+		local sx, sy = camera.world_to_screen(message.x or 640, message.y or 360)
+		self.dmg_index = (self.dmg_index % #self.dmg_nodes) + 1
+		local n = self.dmg_nodes[self.dmg_index]
+		pcall(gui.cancel_animation, n, "position")
+		pcall(gui.cancel_animation, n, "color")
+		gui.set_text(n, tostring(math.floor(message.amount or 0)))
+		gui.set_position(n, vmath.vector3(sx, sy, 0))
+		gui.set_color(n, vmath.vector4(1, 1, 1, 1))
+		gui.set_scale(n, vmath.vector3(0.95, 0.95, 1))
+		gui.set_enabled(n, true)
+		gui.animate(n, "position", vmath.vector3(sx, sy + 48, 0), gui.EASING_OUTQUAD, 0.75)
+		gui.animate(n, "color", vmath.vector4(1, 0.9, 0.8, 0), gui.EASING_OUTQUAD, 0.75, 0, function(_, node)
+			gui.set_enabled(node, false)
+		end, gui.PLAYBACK_ONCE_FORWARD)
+
+	elseif message_id == hash("battle_over") then
+		self.result_open = true
+		gui.set_text(self.result_title, message.win and i18n.t("victory") or i18n.t("defeat"))
+		gui.set_color(self.result_title, message.win and GOLD or vmath.vector4(1, 0.45, 0.4, 1))
+		set_enabled_all(self.result_nodes, true)
+
+	elseif message_id == hash("battle_restart") then
+		self.result_open = false
+		set_enabled_all(self.result_nodes, false)
+
+	elseif message_id == hash("pause_changed") then
+		self.paused = message.paused and true or false
+		set_enabled_all(self.pause_nodes, self.paused)
 		if self.paused then
 			audio.pause_all()
 		else
@@ -113,5 +235,3 @@ function on_message(self, message_id, message, sender)
 		end
 	end
 end
-
-
