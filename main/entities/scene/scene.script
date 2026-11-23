@@ -1,0 +1,103 @@
+-- main/entities/scene/scene.script
+-- M0 placeholder scene: flat-colour silhouettes on a 1280x720 world, spawned as separate
+-- game objects so the world pass, factories and depth ordering are exercised.
+-- Replaced by the generated art pack and the real castle builder in M1/M2.
+
+local GROUND_Y = 150
+local PLAYER_X = 260
+local ENEMY_X = 1020
+
+local SKY = vmath.vector4(0.66, 0.83, 0.95, 1)
+local SUN = vmath.vector4(1.0, 0.80, 0.30, 1)
+local CLOUD = vmath.vector4(1, 1, 1, 0.92)
+local GRASS = vmath.vector4(0.52, 0.76, 0.32, 1)
+local GRASS_TOP = vmath.vector4(0.36, 0.62, 0.20, 1)
+local BLUE_DARK = vmath.vector4(0.16, 0.27, 0.55, 1)
+local BLUE = vmath.vector4(0.24, 0.48, 0.88, 1)
+local BLUE_LIGHT = vmath.vector4(0.36, 0.62, 0.97, 1)
+local RED_DARK = vmath.vector4(0.55, 0.16, 0.16, 1)
+local RED = vmath.vector4(0.90, 0.30, 0.24, 1)
+local RED_LIGHT = vmath.vector4(0.97, 0.44, 0.36, 1)
+local UNIT_BLUE = vmath.vector4(0.78, 0.90, 1.0, 1)
+local UNIT_RED = vmath.vector4(1.0, 0.84, 0.78, 1)
+local GOLD = vmath.vector4(0.96, 0.72, 0.18, 1)
+
+-- w/h are the desired world size; base is the source image size in the atlas.
+local LAYOUT = {
+	{ id = "sky", x = 640, y = 450, w = 1800, h = 1100, z = -0.95, color = SKY, anim = "white_pixel", base = 16 },
+	{ id = "sun", x = 1130, y = 620, w = 96, h = 96, z = -0.94, color = SUN, anim = "circle", base = 32 },
+	{ id = "cloud1", x = 300, y = 600, w = 190, h = 62, z = -0.93, color = CLOUD, anim = "circle", base = 32 },
+	{ id = "cloud2", x = 760, y = 640, w = 150, h = 52, z = -0.93, color = CLOUD, anim = "circle", base = 32 },
+	{ id = "cloud3", x = 980, y = 500, w = 120, h = 44, z = -0.93, color = CLOUD, anim = "circle", base = 32 },
+	{ id = "ground", x = 640, y = 70, w = 1800, h = 160, z = -0.90, color = GRASS, anim = "white_pixel", base = 16 },
+	{ id = "ground_top", x = 640, y = GROUND_Y, w = 1800, h = 22, z = -0.89, color = GRASS_TOP, anim = "white_pixel", base = 16 },
+}
+
+local function add_castle(prefix, x, colors)
+	local rooms = {
+		{ id = "base", y = GROUND_Y + 15, w = 300, h = 30, color = colors[1] },
+		{ id = "r1", y = GROUND_Y + 68, w = 270, h = 76, color = colors[2] },
+		{ id = "r2", y = GROUND_Y + 144, w = 220, h = 76, color = colors[3] },
+		{ id = "r3", y = GROUND_Y + 220, w = 170, h = 76, color = colors[3] },
+	}
+	for i, room in ipairs(rooms) do
+		table.insert(LAYOUT, {
+			id = prefix .. room.id,
+			x = x,
+			y = room.y,
+			w = room.w,
+			h = room.h,
+			z = -0.70 + i * 0.001,
+			color = room.color,
+			anim = "white_pixel",
+			base = 16,
+		})
+	end
+	local unit_y = { GROUND_Y + 68, GROUND_Y + 144, GROUND_Y + 220 }
+	local unit_color = colors[4]
+	local unit_dx = (prefix == "p_") and 70 or -70
+	for i = 1, 3 do
+		table.insert(LAYOUT, {
+			id = prefix .. "u" .. i,
+			x = x + unit_dx,
+			y = unit_y[i],
+			w = 42,
+			h = 42,
+			z = -0.60,
+			color = unit_color,
+			anim = "circle",
+			base = 32,
+		})
+	end
+end
+
+add_castle("p_", PLAYER_X, { BLUE_DARK, BLUE, BLUE_LIGHT, UNIT_BLUE })
+add_castle("e_", ENEMY_X, { RED_DARK, RED, RED_LIGHT, UNIT_RED })
+
+local GATE_X = 640
+local GATE_Y = 500
+table.insert(LAYOUT, { id = "gate_ring", x = GATE_X, y = GATE_Y, w = 70, h = 70, z = -0.50, color = GOLD, anim = "circle", base = 32 })
+table.insert(LAYOUT, { id = "gate_hole", x = GATE_X, y = GATE_Y, w = 48, h = 48, z = -0.49, color = SKY, anim = "circle", base = 32 })
+
+function init(self)
+	self.t = 0
+	self.ids = {}
+	for _, e in ipairs(LAYOUT) do
+		local id = factory.create("#placeholder_factory", vmath.vector3(e.x, e.y, e.z))
+		local sprite_url = msg.url(nil, id, "sprite")
+		sprite.play_flipbook(sprite_url, hash(e.anim))
+		go.set(sprite_url, "tint", e.color)
+		go.set_scale(vmath.vector3(e.w / e.base, e.h / e.base, 1), id)
+		self.ids[e.id] = id
+	end
+	print("SCENE spawned " .. tostring(#LAYOUT) .. " placeholders")end
+
+function update(self, dt)
+	self.t = self.t + dt
+	-- The gate bobs on its balloon: proves the per-frame path and reads as "alive".
+	local y = GATE_Y + math.sin(self.t * 1.6) * 7
+	go.set_position(vmath.vector3(GATE_X, y, -0.50), self.ids.gate_ring)
+	go.set_position(vmath.vector3(GATE_X, y, -0.49), self.ids.gate_hole)
+	go.set_position(vmath.vector3(300 + math.sin(self.t * 0.2) * 18, 600, -0.93), self.ids.cloud1)
+	go.set_position(vmath.vector3(760 + math.sin(self.t * 0.16 + 2) * 24, 640, -0.93), self.ids.cloud2)
+end

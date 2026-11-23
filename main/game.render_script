@@ -1,42 +1,31 @@
 -- main/game.render_script
--- Custom render pipeline for Potato War with dynamic world camera, zoom, screenshake and UI pass
+-- Two passes: world (orthographic, aspect-corrected 1280x720) and GUI (window pixels).
 
-local camera_controller = require("lua_modules.camera_controller")
+local camera = require("lua_modules.camera_controller")
 
-local MSG_CLEAR_COLOR = hash("clear_color")
-local MSG_WINDOW_RESIZED = hash("window_resized")
 local MSG_SET_VIEW_PROJ = hash("set_view_projection")
+
+local function buffer_bits()
+	local color = (graphics and (graphics.BUFFER_TYPE_COLOR0_BIT or graphics.BUFFER_COLOR0_BIT or graphics.BUFFER_COLOR_BIT))
+		or (render and (render.BUFFER_COLOR0_BIT or render.BUFFER_COLOR_BIT))
+	local depth = (graphics and (graphics.BUFFER_TYPE_DEPTH_BIT or graphics.BUFFER_DEPTH_BIT))
+		or (render and (render.BUFFER_DEPTH_BIT))
+	return color, depth
+end
 
 function init(self)
 	self.predicates = {
 		tile = render.predicate({ "tile" }),
 		gui = render.predicate({ "gui" }),
-		particle = render.predicate({ "particle" }),
-		model = render.predicate({ "model" }),
-		debug_text = render.predicate({ "debug_text" }),
 	}
-
-	local color_bit = (graphics and (graphics.BUFFER_TYPE_COLOR0_BIT or graphics.BUFFER_COLOR0_BIT or graphics.BUFFER_COLOR_BIT))
-		or (render and (render.BUFFER_COLOR0_BIT or render.BUFFER_COLOR_BIT))
-
-	local depth_bit = (graphics and (graphics.BUFFER_TYPE_DEPTH_BIT or graphics.BUFFER_DEPTH_BIT))
-		or (render and render.BUFFER_DEPTH_BIT)
-
-	local stencil_bit = (graphics and (graphics.BUFFER_TYPE_STENCIL_BIT or graphics.BUFFER_STENCIL_BIT))
-		or (render and render.BUFFER_STENCIL_BIT)
-
-	self.color_buffer_bit = color_bit
+	self.color_bit, self.depth_bit = buffer_bits()
 	self.clear_buffers = {}
-	if color_bit then
-		self.clear_buffers[color_bit] = vmath.vector4(0, 0, 0, 1)
+	if self.color_bit then
+		self.clear_buffers[self.color_bit] = vmath.vector4(0.06, 0.08, 0.14, 1)
 	end
-	if depth_bit then
-		self.clear_buffers[depth_bit] = 1
+	if self.depth_bit then
+		self.clear_buffers[self.depth_bit] = 1
 	end
-	if stencil_bit then
-		self.clear_buffers[stencil_bit] = 0
-	end
-
 	self.window_width = render.get_window_width()
 	self.window_height = render.get_window_height()
 	self.view = vmath.matrix4()
@@ -50,34 +39,29 @@ function update(self)
 	end
 
 	render.set_depth_mask(true)
-	render.set_stencil_mask(0xff)
 	render.clear(self.clear_buffers)
 	render.set_depth_mask(false)
 
-	-- 1. World Pass: Dynamic orthographic projection preserving 16:9 aspect ratio without stretching
+	-- World pass: letterbox-free, the projection widens/tallens on other aspect ratios.
 	render.set_viewport(0, 0, self.window_width, self.window_height)
 
-	local target_w = 960
-	local target_h = 540
+	local target_w = 1280
+	local target_h = 720
 	local aspect = self.window_width / self.window_height
 	local proj_w = target_w
 	local proj_h = target_h
-
 	if aspect > (target_w / target_h) then
 		proj_w = target_h * aspect
 	else
 		proj_h = target_w / aspect
 	end
-
 	local offset_x = (proj_w - target_w) * 0.5
 	local offset_y = (proj_h - target_h) * 0.5
 
-	-- Publish the visible world size (shared_state = 1): screen<->world conversions and the
-	-- camera clamp in camera_controller need it on non-16:9 windows
-	camera_controller.view_w = proj_w
-	camera_controller.view_h = proj_h
+	camera.view_w = proj_w
+	camera.view_h = proj_h
 
-	local world_view = camera_controller.get_view_matrix() or self.view
+	local world_view = camera.get_view_matrix() or self.view
 	render.set_view(world_view)
 	render.set_projection(vmath.matrix4_orthographic(-offset_x, target_w + offset_x, -offset_y, target_h + offset_y, -1000, 1000))
 
@@ -89,37 +73,23 @@ function update(self)
 
 	local state_depth = (graphics and graphics.STATE_DEPTH_TEST) or (render and render.STATE_DEPTH_TEST)
 	local state_blend = (graphics and graphics.STATE_BLEND) or (render and render.STATE_BLEND)
-	local state_stencil = (graphics and graphics.STATE_STENCIL_TEST) or (render and render.STATE_STENCIL_TEST)
-
 	if state_depth then render.enable_state(state_depth) end
 	if state_blend then render.enable_state(state_blend) end
 
+	if state_depth then render.set_depth_mask(true) end
 	render.draw(self.predicates.tile)
-	render.draw(self.predicates.particle)
-	render.draw(self.predicates.model)
+	if state_depth then render.set_depth_mask(false) end
 	if state_depth then render.disable_state(state_depth) end
 
-	render.draw_debug3d()
-
-	-- 2. GUI Pass: Fixed screen overlay
+	-- GUI pass: the engine maps GUI design units to window pixels.
 	render.set_view(vmath.matrix4())
 	render.set_projection(vmath.matrix4_orthographic(0, self.window_width, 0, self.window_height, -1000, 1000))
-
-	if state_stencil then render.enable_state(state_stencil) end
 	render.draw(self.predicates.gui)
-	render.draw(self.predicates.debug_text)
-	if state_stencil then render.disable_state(state_stencil) end
 	if state_blend then render.disable_state(state_blend) end
 end
 
 function on_message(self, message_id, message)
-	if message_id == MSG_CLEAR_COLOR then
-		if self.color_buffer_bit and message.color then
-			self.clear_buffers[self.color_buffer_bit] = message.color
-		end
-	elseif message_id == MSG_SET_VIEW_PROJ then
-		if message.view then
-			self.view = message.view
-		end
+	if message_id == MSG_SET_VIEW_PROJ and message.view then
+		self.view = message.view
 	end
 end
