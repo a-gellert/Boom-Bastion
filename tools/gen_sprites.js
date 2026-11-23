@@ -843,6 +843,23 @@ function hills(name, w, h, baseY, amp, phase) {
 hills('bg_hills_far', 1800, 260, 120, 34, 0.8);
 hills('bg_hills_near', 1800, 190, 76, 26, 2.1);
 
+make('hazard_hill', 480, 200, (cv) => {
+  const top = [];
+  for (let x = 0; x <= 480; x += 12) {
+    const t = Math.abs((x - 240) / 240);
+    top.push([x, 60 + 62 * Math.pow(t, 1.6)]);
+  }
+  const shape = poly([[0, 200], ...top, [480, 200]]);
+  cv.paint(shape, vgrad([0.98, 0.98, 0.98, 1], [0.72, 0.72, 0.72, 1], 200));
+  for (let i = 1; i < top.length; i++) {
+    cv.paint(capsule(top[i - 1][0], top[i - 1][1], top[i][0], top[i][1], 1.8), solid(OUTLINE));
+  }
+  for (let i = 0; i < 5; i++) {
+    const x = 60 + i * 85;
+    cv.paint(capsule(x, 150 - (i % 2) * 20, x - 3, 132 - (i % 2) * 20, 1.5), withAlpha([0.55, 0.55, 0.55, 1], 0.6));
+  }
+});
+
 // ---------------------------------------------------------------- UI
 make('ui_panel', 64, 64, (cv) => {
   outlined(cv, rrect(32, 32, 60, 60, 14), vgrad(PAL.cream, PAL.creamDark, 64), 3);

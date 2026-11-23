@@ -7,6 +7,8 @@ local camera = require("lua_modules.camera_controller")
 local audio = require("lua_modules.audio")
 local i18n = require("lua_modules.i18n")
 local units_db = require("lua_modules.units_db")
+local levels_db = require("lua_modules.levels_db")
+local biomes_db = require("lua_modules.biomes_db")
 local Castle = require("lua_modules.castle")
 local wall = require("lua_modules.segmented_wall")
 local ballistics = require("lua_modules.ballistics")
@@ -111,6 +113,16 @@ end
 function M.build_arena(self)
 	local b = self.battle
 	b.arena_ids = {}
+	b.arena_refs = {}
+	b.arena_refs.tufts = {}
+
+	local function arena(anim, x, y, z, w, h, tint, rot)		return add_sprite(self, anim, x, y, z, w, h, tint, rot, true)
+	end
+
+	local function ref(key, id, url)
+		b.arena_refs[key] = { id = id, url = url }
+	end
+
 	local SKY_TOP = vmath.vector4(0.56, 0.72, 0.91, 1)
 	local SKY_BOTTOM = vmath.vector4(1.0, 0.85, 0.66, 1)
 	local SUN = vmath.vector4(1.0, 0.89, 0.64, 1)
@@ -123,26 +135,34 @@ function M.build_arena(self)
 	local GRASS = vmath.vector4(0.50, 0.75, 0.25, 1)
 	local GRASS_TOP = vmath.vector4(0.36, 0.60, 0.16, 1)
 
-	local function arena(anim, x, y, z, w, h, tint, rot)
-		return add_sprite(self, anim, x, y, z, w, h, tint, rot, true)
-	end
-
-	arena("white_pixel", 640, 360, -0.99, 1800, 950, SKY_TOP)
-	arena("bg_gradient", 640, 360, -0.98, 1800, 950, SKY_BOTTOM)
-	arena("fx_glow", 1010, 560, -0.975, 280, 280, SUN_GLOW)
-	arena("circle", 1010, 560, -0.972, 100, 100, SUN)
-	arena("fx_glow", 640, 235, -0.97, 1300, 320, HAZE)
+	local id, url
+	id, url = arena("white_pixel", 640, 360, -0.99, 1800, 950, SKY_TOP)
+	ref("sky", id, url)
+	id, url = arena("bg_gradient", 640, 360, -0.98, 1800, 950, SKY_BOTTOM)
+	ref("gradient", id, url)
+	id, url = arena("fx_glow", 1010, 560, -0.975, 280, 280, SUN_GLOW)
+	ref("sun_glow", id, url)
+	id, url = arena("circle", 1010, 560, -0.972, 100, 100, SUN)
+	ref("sun", id, url)
+	id, url = arena("fx_glow", 640, 235, -0.97, 1300, 320, HAZE)
+	ref("haze", id, url)
 	arena("fx_cloud", 280, 620, -0.965, 240, 100, CLOUD)
 	arena("fx_cloud", 810, 650, -0.965, 190, 80, CLOUD)
 	arena("fx_cloud", 1130, 515, -0.965, 150, 62, CLOUD)
-	arena("bg_hills_far", 640, 300, -0.962, 1900, 280, HILL_BACK)
-	arena("bg_hills_far", 640, 250, -0.96, 1800, 260, HILL_FAR)
-	arena("bg_hills_near", 640, 180, -0.958, 1800, 190, HILL_NEAR)
-	arena("white_pixel", 640, 45, -0.955, 1800, 200, GRASS)
-	arena("white_pixel", 640, constants.GROUND_Y, -0.954, 1800, 14, GRASS_TOP)
+	id, url = arena("bg_hills_far", 640, 300, -0.962, 1900, 280, HILL_BACK)
+	ref("hills_back", id, url)
+	id, url = arena("bg_hills_far", 640, 250, -0.96, 1800, 260, HILL_FAR)
+	ref("hills_far", id, url)
+	id, url = arena("bg_hills_near", 640, 180, -0.958, 1800, 190, HILL_NEAR)
+	ref("hills_near", id, url)
+	id, url = arena("white_pixel", 640, 45, -0.955, 1800, 200, GRASS)
+	ref("grass", id, url)
+	id, url = arena("white_pixel", 640, constants.GROUND_Y, -0.954, 1800, 14, GRASS_TOP)
+	ref("grass_top", id, url)
 
 	for _, gx in ipairs({ 40, 430, 470, 760, 810, 1210, 1250 }) do
-		arena("grass_tuft", gx, constants.GROUND_Y + 9, -0.953, 30, 18, WHITE)
+		local id, url = arena("grass_tuft", gx, constants.GROUND_Y + 9, -0.953, 30, 18, WHITE)
+		table.insert(b.arena_refs.tufts or {}, { id = id, url = url })
 	end
 	arena("flower", 150, constants.GROUND_Y + 9, -0.952, 16, 18, WHITE)
 	arena("flower", 700, constants.GROUND_Y + 9, -0.952, 16, 18, WHITE)
@@ -150,6 +170,30 @@ function M.build_arena(self)
 	arena("bg_bird", 350, 600, -0.951, 18, 9, WHITE)
 	arena("bg_bird", 390, 588, -0.951, 14, 7, WHITE)
 	arena("bg_bird", 900, 640, -0.951, 16, 8, WHITE)
+end
+
+function M.apply_biome(self, biome_id)
+	local b = self.battle
+	local p = biomes_db.get(biome_id)
+	b.biome = p
+	if not b.arena_refs then return end
+	local function tint(key, color)
+		local r = b.arena_refs[key]
+		if r then go.set(r.url, "tint", color) end
+	end
+	tint("sky", p.sky_top)
+	tint("gradient", p.sky_bottom)
+	tint("sun_glow", vmath.vector4(p.sun.x, p.sun.y, p.sun.z, 0.55))
+	tint("sun", p.sun)
+	tint("haze", p.haze)
+	tint("hills_back", p.hills_back)
+	tint("hills_far", p.hills_far)
+	tint("hills_near", p.hills_near)
+	tint("grass", p.grass)
+	tint("grass_top", p.grass_top)
+	for _, t in ipairs(b.arena_refs.tufts or {}) do
+		go.set(t.url, "tint", p.grass_top)
+	end
 end
 
 -- ------------------------------------------------------------------ pools
@@ -209,8 +253,28 @@ function M.build_pools(self)
 end
 
 -- ------------------------------------------------------------------ battle start
-function M.start_battle(self)
+local P_SPOTS = { { cc = 0, rr = 0 }, { cc = 2, rr = 0 }, { cc = 1, rr = 1 }, { cc = 0, rr = 2 } }
+local E_SPOTS = { { cc = 2, rr = 0 }, { cc = 0, rr = 0 }, { cc = 1, rr = 1 }, { cc = 2, rr = 2 } }
+
+local function roster(roles, spots)
+	local out = {}
+	for i, role in ipairs(roles) do
+		local s = spots[i] or spots[#spots]
+		out[i] = { role = role, cc = s.cc, rr = s.rr }
+	end
+	return out
+end
+
+function M.start_battle(self, level_index)
 	local b = self.battle
+	local level = levels_db.get(level_index or b.level_index or 1)
+	b.level = level
+	b.level_index = level.id
+	b.wind = level.wind or 0
+	b.hill = nil
+	b.hazards = {}
+	b.wind_fx = {}
+
 	for _, id in ipairs(b.ids) do
 		go.delete(id)
 	end
@@ -237,7 +301,7 @@ function M.start_battle(self)
 	b.gates = {}
 	b.falls = {}
 	b.state = "intro"
-	b.timer = 0.8
+	b.timer = 1.25
 	b.turn = "player"
 	b.selected = 1
 	b.winner = nil
@@ -254,20 +318,24 @@ function M.start_battle(self)
 
 	b.player = Castle.new({
 		team = "player", x0 = constants.PLAYER_X0, tilt = constants.PLAYER_TILT,
-		units = PLAYER_UNITS,
+		units = roster(level.player, P_SPOTS),
 	})
 	b.enemy = Castle.new({
 		team = "enemy", x0 = constants.ENEMY_X0, tilt = constants.ENEMY_TILT,
-		units = ENEMY_UNITS,
+		units = roster(level.enemy, E_SPOTS), steel = level.steel,
 	})
 	M.build_castle(self, b.player)
 	M.build_castle(self, b.enemy)
-	M.spawn_gate(self, "x2", 640, 400)
+	for _, g in ipairs(level.gates or {}) do
+		M.spawn_gate(self, g.type, g.x, g.y)
+	end
+	M.apply_biome(self, level.biome)
+	M.spawn_hazards(self, level)
 
 	M.select_unit(self, 1, true)
 	M.update_hud(self)
 	msg.post("/gui_hud#gui", "battle_restart")
-	M.banner(self, i18n.t("battle_start"))
+	M.banner(self, "LEVEL " .. tostring(level.id) .. " · " .. level.name)
 	audio.music("music_battle")
 end
 
@@ -417,6 +485,69 @@ function M.spawn_gate(self, gate_type, x, y)
 	return gate
 end
 
+-- ------------------------------------------------------------------ hazards
+function M.spawn_hazards(self, level)
+	local b = self.battle
+	if level.hazard == "hill" then
+		local tint = (b.biome and b.biome.hills_near) or vmath.vector4(0.42, 0.66, 0.34, 1)
+		local id = add_sprite(self, "hazard_hill", 640, 200, -0.585, 340, 120, tint, 0)
+		b.hill = { x = 640, top = 218, half = 175, id = id }
+	elseif level.hazard == "barrels" then
+		for i, dx in ipairs({ -170, 150 }) do
+			local x = b.enemy.ax + dx
+			local y = (i == 1) and 520 or 545
+			local id = add_sprite(self, "barrel_0", x, y, -0.545, 34, 42, WHITE, 0)
+			local rope = add_sprite(self, "white_pixel", x, (y + 700) * 0.5, -0.546,
+				4, 700 - y, vmath.vector4(0.25, 0.18, 0.12, 0.9), 0)
+			table.insert(b.hazards, {
+				kind = "barrel", x = x, y = y, r = 26, alive = true, id = id, rope_id = rope,
+			})
+		end
+	end
+	if (level.wind or 0) ~= 0 then
+		local tint = (b.biome and b.biome.hills_near) or WHITE
+		for i = 1, 4 do
+			local x = 180 + i * 230
+			local y = 260 + (i % 3) * 80
+			local id = add_sprite(self, "grass_tuft", x, y, -0.575, 26, 16, tint, 0)
+			table.insert(b.wind_fx, { id = id, x = x, y = y })
+		end
+	end
+end
+
+function M.barrel_explode(self, hz)
+	if not hz.alive then return end
+	hz.alive = false
+	disable_go(hz.id)
+	if hz.rope_id then disable_go(hz.rope_id) end
+	audio.play_explosion(90)
+	camera.shake(20, 0.4)
+	self.battle.hitstop = math.max(self.battle.hitstop, 0.06)
+	M.spawn_fx(self, "fx_burst", hz.x, hz.y, Z.fx, 150, 150, WHITE, 0, 0, 0, 0.36, 0, 1.7, 0)
+	M.spawn_fx(self, "fx_ring", hz.x, hz.y, Z.fx + 0.001, 140, 140,
+		vmath.vector4(1, 0.9, 0.7, 0.8), 0, 0, 0, 0.35, 0, 2.6, 0)
+	M.spawn_fx(self, "barrel_0", hz.x, hz.y, Z.fx + 0.002, 34, 42, WHITE,
+		(math.random() - 0.5) * 140, 120, 1.0, 1.8, 300, 1, 0.2, true)
+	for _, castle in ipairs({ self.battle.player, self.battle.enemy }) do
+		local destroyed = wall.blast(castle, hz.x, hz.y, 90, 85, false)
+		for _, br in ipairs(destroyed) do M.destroy_brick(self, br) end
+		for _, br in ipairs(castle.bricks) do
+			if br.alive then M.update_brick_visual(br) end
+		end
+		for _, u in ipairs(castle.units) do
+			if u.alive then
+				local dx, dy = u.x - hz.x, u.y - hz.y
+				if dx * dx + dy * dy < 120 * 120 then
+					M.damage_unit(self, u, 50, u.x, u.y, hz.x, hz.y)
+				end
+			end
+		end
+	end
+	M.apply_hit_flash(self, hz.x, hz.y, 90)
+	M.apply_structural_falls(self)
+	msg.post("/gui_hud#gui", "show_word", { x = hz.x, y = hz.y + 30, word = i18n.t("comic_boom") })
+end
+
 -- ------------------------------------------------------------------ HUD glue
 function M.banner(self, text)
 	msg.post("/gui_hud#gui", "show_banner", { text = text })
@@ -428,6 +559,7 @@ function M.update_hud(self)
 	for _, u in ipairs(b.player.units) do
 		table.insert(rows, {
 			role = u.role,
+			label = units_db.get(u.role).label,
 			alive = u.alive,
 			cooldown = u.cooldown,
 			selected = (b.player.units[b.selected] == u),
@@ -438,6 +570,8 @@ function M.update_hud(self)
 		selected = b.selected,
 		units = rows,
 		state = b.state,
+		level_id = b.level and b.level.id or 1,
+		level_name = b.level and b.level.name or "",
 	})
 end
 
@@ -701,6 +835,7 @@ function M.update_projectiles(self, dt)
 		local exploded = false
 		if p.slot.active then
 			for _ = 1, steps do
+				if b.wind and b.wind ~= 0 then p.vx = p.vx + b.wind * sub end
 				ballistics.integrate(p, sub)
 				-- gates
 				for _, g in ipairs(b.gates) do
@@ -711,6 +846,26 @@ function M.update_projectiles(self, dt)
 						end
 					end
 				end
+				-- central hill
+				if b.hill and p.y <= b.hill.top and math.abs(p.x - b.hill.x) < b.hill.half then
+					M.detonate(self, p, p.x, b.hill.top, nil)
+					exploded = true
+					break
+				end
+				-- hanging explosive barrels
+				for _, hz in ipairs(b.hazards or {}) do
+					if hz.kind == "barrel" and hz.alive then
+						local hx, hy = p.x - hz.x, p.y - hz.y
+						if hx * hx + hy * hy < (hz.r + p.radius) * (hz.r + p.radius) then
+							M.barrel_explode(self, hz)
+							p.slot.active = false
+							disable_go(p.slot.id)
+							exploded = true
+							break
+						end
+					end
+				end
+				if exploded then break end
 				-- bricks (the shot passes through its own castle while leaving the keep)
 				local skip = nil
 				if p.self_time > 0 then
@@ -1026,7 +1181,15 @@ end
 
 -- ------------------------------------------------------------------ aim
 function M.collide_preview(self, x, y)
+	local b = self.battle
 	if y <= constants.GROUND_Y + 2 then return true end
+	if b.hill and y <= b.hill.top and math.abs(x - b.hill.x) < b.hill.half then return true end
+	for _, hz in ipairs(b.hazards or {}) do
+		if hz.kind == "barrel" and hz.alive then
+			local dx, dy = x - hz.x, y - hz.y
+			if dx * dx + dy * dy < (hz.r + 3) * (hz.r + 3) then return true end
+		end
+	end
 	if M.brick_at(self, x, y, 3, {}, self.battle.player) then return true end
 	if M.unit_at(self, x, y, 3, "player") then return true end
 	for _, castle in ipairs({ self.battle.player, self.battle.enemy }) do
@@ -1055,7 +1218,7 @@ function M.compute_aim(self, sx, sy)
 	local vx, vy = nx * speed, ny * speed
 	local gravity = constants.GRAVITY * (role.gravity or 1)
 	local points = ballistics.preview(u.x, u.y + 6, vx, vy, gravity, 70, 0.025,
-		function(px, py) return M.collide_preview(self, px, py) end)
+		function(px, py) return M.collide_preview(self, px, py) end, self.battle.wind)
 	local shown = math.max(4, math.floor(#points * constants.PREVIEW_FRACTION))
 	local dots = {}
 	for i = 1, 18 do
@@ -1181,6 +1344,10 @@ function M.on_input(self, action_id, action)
 	end
 	if action_id == hash("debug_a") and action.pressed then
 		M.debug_blast(self, b.enemy.ax - 104, constants.CASTLE_BOTTOM + 4 * constants.CELL_H, 42, 130)
+		return true
+	end
+	if action_id == hash("debug_jump") and action.pressed then
+		M.start_battle(self, (b.level_index % levels_db.count()) + 1)
 		return true
 	end
 	if action_id == hash("touch") then
@@ -1471,7 +1638,7 @@ end
 
 function M.enemy_fire(self)
 	local b = self.battle
-	local shot = ai.pick_shot(b.enemy, b.player, 5.5)
+	local shot = ai.pick_shot(b.enemy, b.player, (b.level and b.level.ai_error) or 5.5)
 	if not shot then
 		M.finish(self, true)
 		return
@@ -1572,6 +1739,11 @@ function M.update(self, dt)
 		return
 	end
 	M.update_gates(self, dt)
+	for _, w in ipairs(b.wind_fx or {}) do
+		w.x = w.x + (b.wind or 0) * dt * 0.55
+		if w.x > 1340 then w.x = -60 elseif w.x < -60 then w.x = 1340 end
+		go.set_position(vmath.vector3(w.x, w.y, -0.575), w.id)
+	end
 	M.update_projectiles(self, dt)
 	M.update_fx(self, dt)
 	M.update_flying_units(self, dt)
@@ -1649,18 +1821,22 @@ function M.init(self)
 end
 
 function M.on_message(self, message_id, message, sender)
+	local b = self.battle
 	if message_id == hash("select_unit") then
 		M.select_unit(self, message.index or 1)
 	elseif message_id == hash("toggle_pause") then
 		M.toggle_pause(self)
 	elseif message_id == hash("restart_battle") then
-		M.start_battle(self)
+		M.start_battle(self, b.level_index)
+	elseif message_id == hash("next_battle") then
+		M.start_battle(self, (b.level_index % levels_db.count()) + 1)
 	elseif message_id == hash("hud_ready") then
 		M.update_hud(self)
 	end
 end
 
 return M
+
 
 
 

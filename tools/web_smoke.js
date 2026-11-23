@@ -137,7 +137,7 @@ srv.listen(PORT, '127.0.0.1', async () => {
   const mouse = (type, x, y) => cdp('Input.dispatchMouseEvent', { type, x, y, button: 'left', clickCount: 1 });
   const KEYS = {
     Escape: 27, Space: 32, ArrowLeft: 37, ArrowUp: 38, ArrowRight: 39, ArrowDown: 40, Enter: 13,
-    F9: 120, F10: 121, KeyQ: 81, KeyA: 65, KeyD: 68, KeyW: 87, Digit1: 49, Digit2: 50, Backspace: 8,
+    F8: 119, F9: 120, F10: 121, KeyQ: 81, KeyA: 65, KeyD: 68, KeyW: 87, Digit1: 49, Digit2: 50, Backspace: 8,
   };
   const key = async (name, type) => {
     const code = KEYS[name] || name.toUpperCase().charCodeAt(0);

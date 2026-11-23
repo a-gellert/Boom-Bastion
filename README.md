@@ -15,8 +15,8 @@ the enemy garrison.
 | --- | --- | --- |
 | **M0** | Cleanup + buildable skeleton | done |
 | **M1** | Procedural art pack + look-dev frame | done |
-| **M2** | Core battle: segmented walls, Pull & Release, gates, collapse | current |
-| M3 | 8 units, 6 gates, AI, biomes, levels 1–10 | planned |
+| **M2** | Core battle: segmented walls, Pull & Release, gates, collapse | done |
+| **M3** | 8 units, 6 gates, AI, biomes, levels 1–10 | current |
 | M4 | Perks, meta progression, hotseat, levels 11–30 | planned |
 | M5 | Polish, i18n, Poki hooks, performance | planned |
 | M6 | Release bundle + store assets | planned |
@@ -48,7 +48,7 @@ Art is generated (no external packs): `node tools/gen_sprites.js` writes 116 PNG
 | Pause | `Esc` |
 | Aim / fire | Press anywhere, pull back, release |
 | Select unit | click a unit button or `1`–`4` |
-| Debug | `F9` blast the enemy base, `F10` win (debug builds) |
+| Debug | `F8` next level, `F9` blast the enemy base, `F10` win (debug builds) |
 
 ## Layout
 

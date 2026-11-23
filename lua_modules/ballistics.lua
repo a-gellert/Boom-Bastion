@@ -29,11 +29,13 @@ function M.solve_velocity(x0, y0, x1, y1, speed, gravity)
 end
 
 -- Samples the arc until `collide(x, y)` returns true or the step budget runs out.
-function M.preview(x, y, vx, vy, gravity, steps, dt, collide)
+function M.preview(x, y, vx, vy, gravity, steps, dt, collide, wind)
 	local points = { { x = x, y = y } }
 	local cx, cy = x, y
 	local cvx, cvy = vx, vy
+	wind = wind or 0
 	for _ = 1, steps do
+		cvx = cvx + wind * dt
 		cvy = cvy - gravity * dt
 		cx = cx + cvx * dt
 		cy = cy + cvy * dt

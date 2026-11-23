@@ -35,6 +35,10 @@ key_trigger {
   action: "unit_4"
 }
 key_trigger {
+  input: KEY_F8
+  action: "debug_jump"
+}
+key_trigger {
   input: KEY_F9
   action: "debug_a"
 }

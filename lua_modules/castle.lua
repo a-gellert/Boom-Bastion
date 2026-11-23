@@ -14,8 +14,8 @@ local CELL_W = constants.CELL_W
 local CELL_H = constants.CELL_H
 local ROOMS_PER_SIDE = math.floor(COLS / ROOM)
 
-local function cell_kind(team, r, c)
-	if team == "enemy" and r >= 8 and (c == 1 or c == 4 or c == 9) then
+local function cell_kind(team, r, c, steel)
+	if team == "enemy" and steel and r >= 8 and (c == 1 or c == 4 or c == 9) then
 		return "steel"
 	end
 	return (team == "player") and "blue" or "red"
@@ -31,6 +31,7 @@ function M.new(opts)
 		team = opts.team or "player",
 		x0 = opts.x0 or 0,
 		tilt = opts.tilt or 0,
+		steel = opts.steel and true or false,
 		ax = (opts.x0 or 0) + COLS * CELL_W * 0.5,
 		ay = constants.CASTLE_BOTTOM,
 		cols = COLS,
@@ -72,7 +73,7 @@ function M.new(opts)
 					local in_open = (r >= open_r0 and r <= open_r0 + 1
 						and c >= open_c0 and c <= open_c0 + 2)
 					if not in_open then
-						local kind = cell_kind(castle.team, r, c)
+						local kind = cell_kind(castle.team, r, c, opts.steel)
 						local brick = wall.new_brick(kind, r, c, room)
 						table.insert(castle.bricks, brick)
 						table.insert(room.bricks, brick)

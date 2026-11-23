@@ -411,6 +411,10 @@ images {
   sprite_trim_mode: SPRITE_TRIM_MODE_OFF
 }
 images {
+  image: "/main/assets/art/hazard_hill.png"
+  sprite_trim_mode: SPRITE_TRIM_MODE_OFF
+}
+images {
   image: "/main/assets/art/ui_panel.png"
   sprite_trim_mode: SPRITE_TRIM_MODE_OFF
 }

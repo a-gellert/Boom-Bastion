@@ -103,6 +103,7 @@ return {
 	["bg_gradient"] = { 8, 256 },
 	["bg_hills_far"] = { 1800, 260 },
 	["bg_hills_near"] = { 1800, 190 },
+	["hazard_hill"] = { 480, 200 },
 	["ui_panel"] = { 64, 64 },
 	["ui_btn_gold"] = { 48, 48 },
 	["ui_btn_blue"] = { 48, 48 },
