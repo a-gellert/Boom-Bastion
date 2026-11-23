@@ -482,7 +482,7 @@ function M.set_unit_pose(unit, y)
 	go.set_position(vmath.vector3(unit.x, y - 26, Z.unit_shadow), unit.shadow_id)
 end
 
-function M.damage_unit(self, unit, amount, x, y)
+function M.damage_unit(self, unit, amount, x, y, bx, by)
 	if not unit.alive then return end
 	amount = math.max(1, math.floor(amount))
 	unit.hp = math.max(0, unit.hp - amount)
@@ -496,7 +496,25 @@ function M.damage_unit(self, unit, amount, x, y)
 		if Castle.all_units_dead(self.battle.enemy) or Castle.all_units_dead(self.battle.player) then
 			self.battle.slowmo = 0.65
 		end
+	elseif bx and by and amount > 8 then
+		M.knock_unit(self, unit, bx, by, amount)
 	end
+end
+
+function M.knock_unit(self, unit, bx, by, amount)
+	if unit.flying or not unit.alive then return end
+	local dx, dy = unit.x - bx, unit.y - by
+	local d = math.sqrt(dx * dx + dy * dy) + 0.01
+	local power = math.min(560, 180 + amount * 4)
+	unit.flying = true
+	unit.fvx = (dx / d) * power * 0.75
+	unit.fvy = math.abs(dy / d) * power * 0.45 + 220
+	unit.fspin = ((dx >= 0) and 1 or -1) * (220 + math.random() * 180)
+	unit.frot = 0
+	disable_go(unit.shadow_id)
+	M.spawn_fx(self, "fx_dust", unit.x, unit.y, Z.fx, 46, 32,
+		vmath.vector4(1, 1, 1, 0.55), 0, 30, -0.1, 0.55, 0, 2, 0.3)
+	audio.play("whoosh", { vary = 0.15, gain = 0.6 })
 end
 
 function M.kill_unit(self, unit)
@@ -773,6 +791,8 @@ function M.detonate(self, p, x, y, brick, unit)
 	self.battle.hitstop = math.max(self.battle.hitstop, 0.07)
 	M.spawn_fx(self, "fx_burst", x, y, Z.fx, p.blast * 1.9, p.blast * 1.9, WHITE, 0, 0, 0, 0.34, 0, 1.7, 0)
 	M.spawn_fx(self, "fx_ring", x, y, Z.fx + 0.001, p.blast * 1.5, p.blast * 1.5, vmath.vector4(1, 0.9, 0.7, 0.85), 0, 0, 0, 0.32, 0, 2.4, 0)
+	M.spawn_fx(self, "fx_ring", x, y, Z.fx + 0.002, p.blast * 2.2, p.blast * 2.2, vmath.vector4(1, 1, 1, 0.55), 0, 0, 0, 0.45, 0, 3.8, 0)
+	M.spawn_fx(self, "fx_glow", x, y, Z.fx + 0.003, p.blast * 2.6, p.blast * 2.6, vmath.vector4(1, 0.95, 0.75, 0.55), 0, 0, 0, 0.24, 0, 2.2, 0)
 	for i = 1, 5 do
 		M.spawn_fx(self, "fx_smoke", x + (math.random() - 0.5) * 46, y + (math.random() - 0.5) * 34,
 			Z.fx, 40 + math.random() * 30, 40 + math.random() * 30,
@@ -802,6 +822,26 @@ function M.detonate(self, p, x, y, brick, unit)
 			if b.alive then M.update_brick_visual(b) end
 		end
 	end
+	-- shockwave: cracked and close bricks are blown off the wall
+	for _, castle in ipairs({ self.battle.player, self.battle.enemy }) do
+		local blown = 0
+		for _, br in ipairs(castle.bricks) do
+			if br.alive and blown < 8 then
+				local dx, dy = br.wx - x, br.wy - y
+				local dist = math.sqrt(dx * dx + dy * dy)
+				local reach = p.blast * 0.95
+				if dist < reach then
+					local ratio = br.hp / br.max_hp
+					if ratio < 0.6 or dist < p.blast * 0.5 then
+						local d = dist + 0.01
+						local speed = 180 + (1 - dist / reach) * 240
+						M.drop_brick(self, br, (dx / d) * speed, math.abs(dy / d) * speed * 0.6 + 90)
+						blown = blown + 1
+					end
+				end
+			end
+		end
+	end
 	M.apply_hit_flash(self, x, y, p.blast)
 	M.apply_structural_falls(self)
 	if p.blast >= 48 then
@@ -810,7 +850,7 @@ function M.detonate(self, p, x, y, brick, unit)
 
 	-- unit damage
 	if unit then
-		M.damage_unit(self, unit, p.unit_damage, x, y)
+		M.damage_unit(self, unit, p.unit_damage, x, y, x, y)
 	end
 	for _, castle in ipairs({ self.battle.player, self.battle.enemy }) do
 		for _, u in ipairs(castle.units) do
@@ -821,7 +861,7 @@ function M.detonate(self, p, x, y, brick, unit)
 				if dist < reach then
 					local dmg = p.unit_damage * wall.falloff(dist, reach)
 					if dmg > 2 then
-						M.damage_unit(self, u, dmg, u.x, u.y)
+						M.damage_unit(self, u, dmg, u.x, u.y, x, y)
 					end
 				end
 			end
@@ -859,15 +899,15 @@ function M.destroy_brick(self, brick)
 end
 
 -- A brick that lost its path to the foundation falls as a physical chunk.
-function M.drop_brick(self, brick)
+function M.drop_brick(self, brick, vx, vy)
 	if not brick.alive then return end
 	brick.alive = false
 	if brick.id then disable_go(brick.id) end
 	local anim = Castle.brick_anim(brick.kind, wall.state(brick))
 	M.spawn_fx(self, anim, brick.wx, brick.wy, Z.fx + 0.002,
 		constants.CELL_W + 1, constants.CELL_H + 1, WHITE,
-		(math.random() - 0.5) * 140,
-		20 + math.random() * 70,
+		vx or (math.random() - 0.5) * 140,
+		vy or (20 + math.random() * 70),
 		1.0, 2.4,
 		(math.random() - 0.5) * 260,
 		1, 0.1, true)
@@ -1247,6 +1287,49 @@ function M.place_unit_at(unit, y)
 	go.set_position(vmath.vector3(unit.x, y - 26, Z.unit_shadow), unit.shadow_id)
 end
 
+function M.update_flying_units(self, dt)
+	local b = self.battle
+	for _, castle in ipairs({ b.player, b.enemy }) do
+		for _, u in ipairs(castle.units) do
+			if u.flying and u.alive then
+				u.fvy = u.fvy - constants.GRAVITY * dt
+				u.x = math.max(30, math.min(1250, u.x + u.fvx * dt))
+				u.y = u.y + u.fvy * dt
+				u.frot = u.frot + u.fspin * dt
+				local ground = constants.GROUND_Y + 27
+				local landed = false
+				if u.y <= ground then
+					u.y = ground
+					landed = true
+				end
+				local q = vmath.quat_rotation_z(math.rad(u.frot))
+				go.set_position(vmath.vector3(u.x, u.y, Z.unit_body), u.body_id)
+				go.set_position(vmath.vector3(u.x, u.y, Z.unit_gear), u.gear_id)
+				go.set_position(vmath.vector3(u.x, u.y + 3, Z.unit_eyes), u.eyes_id)
+				go.set_rotation(q, u.body_id)
+				go.set_rotation(q, u.gear_id)
+				go.set_rotation(q, u.eyes_id)
+				if landed then
+					u.flying = false
+					u.fvx, u.fvy, u.fspin = 0, 0, 0
+					u.frot = 0
+					local upright = vmath.quat_rotation_z(0)
+					go.set_rotation(upright, u.body_id)
+					go.set_rotation(upright, u.gear_id)
+					go.set_rotation(upright, u.eyes_id)
+					go.set_position(vmath.vector3(u.x, u.y - 26, Z.unit_shadow), u.shadow_id)
+					enable_go(u.shadow_id)
+					M.spawn_fx(self, "fx_dust", u.x, u.y - 20, Z.fx, 54, 30,
+						vmath.vector4(1, 1, 1, 0.55), 0, 30, -0.1, 0.55, 0, 2, 0.3)
+					camera.shake(7, 0.25)
+					audio.play("bounce", { speed = 0.8, gain = 0.8, vary = 0.1 })
+					M.damage_unit(self, u, 28, u.x, u.y)
+				end
+			end
+		end
+	end
+end
+
 function M.collapse(self)
 	local b = self.battle
 	for pass = 1, 4 do
@@ -1332,6 +1415,14 @@ function M.debug_blast(self, x, y, radius, damage)
 	msg.post("/gui_hud#gui", "show_word", { x = x, y = y + 60, word = i18n.t("comic_boom") })
 	M.apply_hit_flash(self, x, y, radius)
 	M.apply_structural_falls(self)
+	for _, u in ipairs(b.enemy.units) do
+		if u.alive then
+			local dx, dy = u.x - x, u.y - y
+			if dx * dx + dy * dy < (radius + 30) * (radius + 30) then
+				M.damage_unit(self, u, 35, u.x, u.y, x, y)
+			end
+		end
+	end
 	M.collapse(self)
 end
 
@@ -1483,6 +1574,7 @@ function M.update(self, dt)
 	M.update_gates(self, dt)
 	M.update_projectiles(self, dt)
 	M.update_fx(self, dt)
+	M.update_flying_units(self, dt)
 	M.update_falls(self, dt)
 	M.update_state(self, dt)
 
