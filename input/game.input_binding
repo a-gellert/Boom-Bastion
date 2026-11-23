@@ -1,0 +1,116 @@
+mouse_trigger {
+  input: MOUSE_BUTTON_1
+  action: "touch"
+}
+touch_trigger {
+  input: TOUCH_MULTI
+  action: "touch_multi"
+}
+mouse_trigger {
+  input: MOUSE_BUTTON_2
+  action: "touch_alt"
+}
+mouse_trigger {
+  input: MOUSE_WHEEL_UP
+  action: "mouse_wheel_up"
+}
+mouse_trigger {
+  input: MOUSE_WHEEL_DOWN
+  action: "mouse_wheel_down"
+}
+key_trigger {
+  input: KEY_A
+  action: "left"
+}
+key_trigger {
+  input: KEY_LEFT
+  action: "left"
+}
+key_trigger {
+  input: KEY_D
+  action: "right"
+}
+key_trigger {
+  input: KEY_RIGHT
+  action: "right"
+}
+key_trigger {
+  input: KEY_W
+  action: "jump"
+}
+key_trigger {
+  input: KEY_UP
+  action: "jump"
+}
+key_trigger {
+  input: KEY_SPACE
+  action: "jump"
+}
+key_trigger {
+  input: KEY_1
+  action: "weapon_1"
+}
+key_trigger {
+  input: KEY_2
+  action: "weapon_2"
+}
+key_trigger {
+  input: KEY_3
+  action: "weapon_3"
+}
+key_trigger {
+  input: KEY_4
+  action: "weapon_4"
+}
+key_trigger {
+  input: KEY_5
+  action: "weapon_5"
+}
+key_trigger {
+  input: KEY_6
+  action: "weapon_6"
+}
+key_trigger {
+  input: KEY_7
+  action: "weapon_7"
+}
+key_trigger {
+  input: KEY_8
+  action: "weapon_8"
+}
+key_trigger {
+  input: KEY_Q
+  action: "inventory"
+}
+key_trigger {
+  input: KEY_ESC
+  action: "escape"
+}
+key_trigger {
+  input: KEY_BACK
+  action: "escape"
+}
+key_trigger {
+  input: KEY_ENTER
+  action: "enter"
+}
+key_trigger {
+  input: KEY_F1
+  action: "toggle_profiler"
+}
+key_trigger {
+  input: KEY_F9
+  action: "debug_arsenal"
+}
+key_trigger {
+  input: KEY_F10
+  action: "debug_win"
+}
+key_trigger {
+  input: KEY_F3
+  action: "toggle_profiler"
+}
+key_trigger {
+  input: KEY_P
+  action: "toggle_profiler"
+}

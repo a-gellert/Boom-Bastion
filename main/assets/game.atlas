@@ -1,0 +1,286 @@
+images {
+  image: "/main/assets/white_pixel.png"
+}
+images {
+  image: "/main/assets/circle.png"
+}
+images {
+  image: "/main/assets/grenade.png"
+}
+images {
+  image: "/main/assets/rifle.png"
+}
+images {
+  image: "/main/assets/knife.png"
+}
+images {
+  image: "/main/assets/crosshair.png"
+}
+images {
+  image: "/main/assets/explosion.png"
+}
+images {
+  image: "/main/assets/smoke.png"
+}
+images {
+  image: "/main/assets/tombstone.png"
+}
+images {
+  image: "/main/assets/box.png"
+}
+images {
+  image: "/main/assets/peeler.png"
+}
+images {
+  image: "/main/assets/oil_bottle.png"
+}
+images {
+  image: "/main/assets/masher_bazooka.png"
+}
+images {
+  image: "/main/assets/skewer_rifle.png"
+}
+images {
+  image: "/main/assets/grater.png"
+}
+images {
+  image: "/main/assets/holy_spud.png"
+}
+images {
+  image: "/main/assets/dirt_particle.png"
+}
+images {
+  image: "/main/assets/spark.png"
+}
+images {
+  image: "/main/assets/hand.png"
+}
+images {
+  image: "/main/assets/tnt_barrel.png"
+}
+images {
+  image: "/main/assets/airship.png"
+}
+images {
+  image: "/main/assets/beetle_crate.png"
+}
+images {
+  image: "/main/assets/beetle_minion.png"
+}
+images {
+  image: "/main/assets/masher_rocket.png"
+}
+images {
+  image: "/main/assets/skewer_dart.png"
+}
+images {
+  image: "/main/assets/fry_bullet.png"
+}
+images {
+  image: "/main/assets/potato_chip.png"
+}
+images {
+  image: "/main/assets/drill_missile.png"
+}
+images {
+  image: "/main/assets/pepper_bomb.png"
+}
+images {
+  image: "/main/assets/garlic_bomb.png"
+}
+images {
+  image: "/main/assets/air_bomb.png"
+}
+images {
+  image: "/main/assets/arrow.png"
+}
+images {
+  image: "/main/assets/star.png"
+}
+images {
+  image: "/main/assets/potato/recruit.png"
+}
+images {
+  image: "/main/assets/potato/assault.png"
+}
+images {
+  image: "/main/assets/potato/medic.png"
+}
+images {
+  image: "/main/assets/potato/sapper.png"
+}
+images {
+  image: "/main/assets/potato/sniper.png"
+}
+images {
+  image: "/main/assets/potato/tank.png"
+}
+images {
+  image: "/main/assets/hat_crown.png"
+}
+images {
+  image: "/main/assets/hat_beret.png"
+}
+images {
+  image: "/main/assets/hat_viking.png"
+}
+images {
+  image: "/main/assets/hat_tophat.png"
+}
+images {
+  image: "/main/assets/hat_bandana.png"
+}
+images {
+  image: "/main/assets/hat_cap.png"
+}
+images {
+  image: "/main/assets/smiles/s_angry.png"
+}
+images {
+  image: "/main/assets/smiles/s_angry2.png"
+}
+images {
+  image: "/main/assets/smiles/s_bored.png"
+}
+images {
+  image: "/main/assets/smiles/s_bored2.png"
+}
+images {
+  image: "/main/assets/smiles/s_happy.png"
+}
+images {
+  image: "/main/assets/smiles/s_wow.png"
+}
+images {
+  image: "/main/assets/hp_frame.png"
+}
+images {
+  image: "/main/assets/spore.png"
+}
+images {
+  image: "/main/assets/hat_chef.png"
+}
+images {
+  image: "/main/assets/hat_cowboy.png"
+}
+images {
+  image: "/main/assets/hat_headphones.png"
+}
+images {
+  image: "/main/assets/hat_helmet.png"
+}
+images {
+  image: "/main/assets/hat_party.png"
+}
+images {
+  image: "/main/assets/hat_pirate.png"
+}
+images {
+  image: "/main/assets/hat_propeller.png"
+}
+images {
+  image: "/main/assets/hat_wizard.png"
+}
+images {
+  image: "/main/assets/weapons/p_airbomb.png"
+}
+images {
+  image: "/main/assets/weapons/p_bomblet.png"
+}
+images {
+  image: "/main/assets/weapons/p_bullet.png"
+}
+images {
+  image: "/main/assets/weapons/p_missile.png"
+}
+images {
+  image: "/main/assets/weapons/p_pellet.png"
+}
+images {
+  image: "/main/assets/weapons/p_rocket.png"
+}
+images {
+  image: "/main/assets/weapons/plane.png"
+}
+images {
+  image: "/main/assets/weapons/target.png"
+}
+images {
+  image: "/main/assets/weapons/w_airstrike.png"
+}
+images {
+  image: "/main/assets/weapons/w_bazooka.png"
+}
+images {
+  image: "/main/assets/weapons/w_cluster.png"
+}
+images {
+  image: "/main/assets/weapons/w_dynamite.png"
+}
+images {
+  image: "/main/assets/weapons/w_grenade.png"
+}
+images {
+  image: "/main/assets/weapons/w_holy.png"
+}
+images {
+  image: "/main/assets/weapons/w_homing.png"
+}
+images {
+  image: "/main/assets/weapons/w_shotgun.png"
+}
+images {
+  image: "/main/assets/weapons/w_sniper.png"
+}
+images {
+  image: "/main/assets/key_cap.png"
+}
+images {
+  image: "/main/assets/ui/ic_left.png"
+}
+images {
+  image: "/main/assets/vfx_snow.png"
+}
+images {
+  image: "/main/assets/vfx_ember.png"
+}
+images {
+  image: "/main/assets/vfx_spore.png"
+}
+images {
+  image: "/main/assets/vfx_leaf.png"
+}
+images {
+  image: "/main/assets/fx/aim_glow.png"
+}
+images {
+  image: "/main/assets/fx/impact_ring.png"
+}
+images {
+  image: "/main/assets/fx/unit_glow.png"
+}
+images {
+  image: "/main/assets/fx/team_ring_blue.png"
+}
+images {
+  image: "/main/assets/fx/team_ring_red.png"
+}
+images {
+  image: "/main/assets/fx/team_blue.png"
+}
+images {
+  image: "/main/assets/fx/team_red.png"
+}
+images {
+  image: "/main/assets/fx/status_burn.png"
+}
+images {
+  image: "/main/assets/fx/status_poison.png"
+}
+images {
+  image: "/main/assets/fx/status_glue.png"
+}
+images {
+  image: "/main/assets/fx/status_stun.png"
+}
+extrude_borders: 2

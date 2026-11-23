@@ -1,0 +1,40 @@
+components {
+  id: "main"
+  component: "/main/main.script"
+}
+components {
+  id: "potato_factory"
+  component: "/main/entities/potato/potato.factory"
+}
+components {
+  id: "projectile_factory"
+  component: "/main/entities/projectile/projectile.factory"
+}
+components {
+  id: "explosion_factory"
+  component: "/main/entities/explosion/explosion.factory"
+}
+components {
+  id: "napalm_factory"
+  component: "/main/entities/napalm/napalm.factory"
+}
+components {
+  id: "barrel_factory"
+  component: "/main/entities/barrel/barrel.factory"
+}
+components {
+  id: "airship_factory"
+  component: "/main/entities/airship/airship.factory"
+}
+components {
+  id: "crate_factory"
+  component: "/main/entities/crate/crate.factory"
+}
+components {
+  id: "plane_factory"
+  component: "/main/entities/plane/plane.factory"
+}
+components {
+  id: "debris_factory"
+  component: "/main/entities/debris/debris.factory"
+}

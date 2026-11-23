@@ -1,0 +1,2786 @@
+script: "/gui/hud/hud.gui_script"
+fonts {
+  name: "system_font"
+  font: "/main/assets/ui.font"
+}
+fonts {
+  name: "title"
+  font: "/main/assets/fonts/title.font"
+}
+fonts {
+  name: "label"
+  font: "/main/assets/fonts/label.font"
+}
+fonts {
+  name: "body"
+  font: "/main/assets/fonts/body.font"
+}
+textures {
+  name: "ui"
+  texture: "/main/assets/ui.atlas"
+}
+textures {
+  name: "game"
+  texture: "/main/assets/game.atlas"
+}
+nodes {
+  position {
+    x: 90.0
+    y: 514.0
+  }
+  size {
+    x: 160.0
+    y: 40.0
+  }
+  type: TYPE_BOX
+  texture: "ui/panel"
+  id: "wind_panel"
+  xanchor: XANCHOR_LEFT
+  yanchor: YANCHOR_TOP
+  inherit_alpha: true
+  slice9 {
+    x: 18.0
+    y: 18.0
+    z: 18.0
+    w: 18.0
+  }
+  alpha: 0.95
+}
+nodes {
+  position {
+    x: -43.0
+  }
+  scale {
+    x: 0.3
+    y: 0.3
+  }
+  size {
+    x: 80.0
+    y: 28.0
+  }
+  color {
+    x: 0.7
+    y: 0.75
+    z: 0.8
+  }
+  type: TYPE_TEXT
+  text: "\320\222\320\225\320\242\320\225\320\240:"
+  font: "system_font"
+  id: "wind_title"
+  parent: "wind_panel"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: -4.0
+  }
+  scale {
+    x: 0.7
+    y: 0.7
+  }
+  size {
+    x: 28.0
+    y: 28.0
+  }
+  color {
+    x: 0.2
+    y: 0.85
+    z: 0.95
+  }
+  type: TYPE_BOX
+  texture: "game/arrow"
+  id: "wind_arrow"
+  parent: "wind_panel"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 38.0
+  }
+  scale {
+    x: 0.4
+    y: 0.4
+  }
+  size {
+    x: 80.0
+    y: 28.0
+  }
+  type: TYPE_TEXT
+  text: "18 \320\274/\321\201"
+  font: "system_font"
+  id: "wind_val"
+  parent: "wind_panel"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 480.0
+    y: 494.0
+  }
+  size {
+    x: 60.0
+    y: 60.0
+  }
+  color {
+    x: 0.16
+    y: 0.5
+    z: 0.92
+  }
+  type: TYPE_BOX
+  texture: "game/circle"
+  id: "timer_circle"
+  yanchor: YANCHOR_TOP
+  inherit_alpha: true
+}
+nodes {
+  rotation {
+    z: 90.0
+  }
+  size {
+    x: 74.0
+    y: 74.0
+  }
+  color {
+    x: 0.05
+    y: 0.07
+    z: 0.1
+  }
+  type: TYPE_PIE
+  id: "timer_ring_bg"
+  parent: "timer_circle"
+  inherit_alpha: true
+  innerRadius: 31.0
+  perimeterVertices: 64
+  alpha: 0.55
+}
+nodes {
+  rotation {
+    z: 90.0
+  }
+  size {
+    x: 74.0
+    y: 74.0
+  }
+  type: TYPE_PIE
+  id: "timer_ring"
+  parent: "timer_circle"
+  inherit_alpha: true
+  innerRadius: 31.0
+  perimeterVertices: 64
+  alpha: 0.9
+}
+nodes {
+  size {
+    x: 52.0
+    y: 30.0
+  }
+  type: TYPE_TEXT
+  text: "25"
+  font: "system_font"
+  id: "timer_text"
+  parent: "timer_circle"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 80.0
+    y: 46.0
+  }
+  size {
+    x: 140.0
+    y: 64.0
+  }
+  color {
+    x: 0.08
+    y: 0.11
+    z: 0.15
+  }
+  type: TYPE_BOX
+  texture: "game/box"
+  id: "touch_controls"
+  xanchor: XANCHOR_LEFT
+  yanchor: YANCHOR_BOTTOM
+  inherit_alpha: true
+  slice9 {
+    x: 4.0
+    y: 4.0
+    z: 4.0
+    w: 4.0
+  }
+  alpha: 0.88
+}
+nodes {
+  position {
+    x: -33.0
+  }
+  size {
+    x: 58.0
+    y: 54.0
+  }
+  color {
+    x: 0.22
+    y: 0.28
+    z: 0.35
+  }
+  type: TYPE_BOX
+  texture: "game/box"
+  id: "btn_left"
+  parent: "touch_controls"
+  inherit_alpha: true
+  slice9 {
+    x: 4.0
+    y: 4.0
+    z: 4.0
+    w: 4.0
+  }
+}
+nodes {
+  size {
+    x: 28.0
+    y: 28.0
+  }
+  type: TYPE_BOX
+  texture: "game/ic_left"
+  id: "txt_left"
+  parent: "btn_left"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    y: 47.0
+  }
+  rotation {
+    z: -90.0
+  }
+  size {
+    x: 24.0
+    y: 24.0
+  }
+  color {
+    y: 0.0
+    z: 0.0
+  }
+  type: TYPE_BOX
+  texture: "game/arrow"
+  id: "tut_arrow_left"
+  parent: "btn_left"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 33.0
+  }
+  size {
+    x: 58.0
+    y: 54.0
+  }
+  color {
+    x: 0.22
+    y: 0.28
+    z: 0.35
+  }
+  type: TYPE_BOX
+  texture: "game/box"
+  id: "btn_right"
+  parent: "touch_controls"
+  inherit_alpha: true
+  slice9 {
+    x: 4.0
+    y: 4.0
+    z: 4.0
+    w: 4.0
+  }
+}
+nodes {
+  rotation {
+    z: 180.0
+  }
+  size {
+    x: 28.0
+    y: 28.0
+  }
+  type: TYPE_BOX
+  texture: "game/ic_left"
+  id: "txt_right"
+  parent: "btn_right"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    y: 47.0
+  }
+  rotation {
+    z: -90.0
+  }
+  size {
+    x: 24.0
+    y: 24.0
+  }
+  color {
+    y: 0.0
+    z: 0.0
+  }
+  type: TYPE_BOX
+  texture: "game/arrow"
+  id: "tut_arrow_right"
+  parent: "btn_right"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 885.0
+    y: 46.0
+  }
+  size {
+    x: 80.0
+    y: 64.0
+  }
+  color {
+    x: 0.08
+    y: 0.11
+    z: 0.15
+  }
+  type: TYPE_BOX
+  texture: "game/box"
+  id: "touch_jump"
+  xanchor: XANCHOR_RIGHT
+  yanchor: YANCHOR_BOTTOM
+  inherit_alpha: true
+  slice9 {
+    x: 4.0
+    y: 4.0
+    z: 4.0
+    w: 4.0
+  }
+  alpha: 0.88
+}
+nodes {
+  size {
+    x: 68.0
+    y: 54.0
+  }
+  color {
+    x: 0.22
+    y: 0.28
+    z: 0.35
+  }
+  type: TYPE_BOX
+  texture: "game/box"
+  id: "btn_jump"
+  parent: "touch_jump"
+  inherit_alpha: true
+  slice9 {
+    x: 4.0
+    y: 4.0
+    z: 4.0
+    w: 4.0
+  }
+}
+nodes {
+  rotation {
+    z: 90.0
+  }
+  size {
+    x: 28.0
+    y: 28.0
+  }
+  type: TYPE_BOX
+  texture: "game/arrow"
+  id: "txt_jump"
+  parent: "btn_jump"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    y: 44.0
+    z: 0.2
+  }
+  scale {
+    x: 0.5
+    y: 0.5
+  }
+  color {
+    y: 0.85
+    z: 0.2
+  }
+  type: TYPE_TEXT
+  text: "\342\226\274"
+  font: "system_font"
+  id: "tut_arrow_jump"
+  parent: "btn_jump"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+  enabled: false
+}
+nodes {
+  position {
+    x: 900.0
+    y: 514.0
+  }
+  size {
+    x: 110.0
+    y: 40.0
+  }
+  type: TYPE_BOX
+  texture: "ui/btn_dark"
+  id: "btn_pause"
+  xanchor: XANCHOR_RIGHT
+  yanchor: YANCHOR_TOP
+  inherit_alpha: true
+  slice9 {
+    x: 16.0
+    y: 12.0
+    z: 16.0
+    w: 16.0
+  }
+  alpha: 0.95
+}
+nodes {
+  scale {
+    x: 0.4
+    y: 0.4
+  }
+  size {
+    x: 100.0
+    y: 30.0
+  }
+  type: TYPE_TEXT
+  text: "\320\234\320\225\320\235\320\256 [ESC]"
+  font: "system_font"
+  id: "txt_pause"
+  parent: "btn_pause"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  size {
+    x: 48.0
+    y: 48.0
+  }
+  type: TYPE_BOX
+  texture: "game/circle"
+  id: "tutorial_ripple"
+  inherit_alpha: true
+  alpha: 0.5
+  enabled: false
+}
+nodes {
+  size {
+    x: 24.0
+    y: 24.0
+  }
+  color {
+    y: 0.85
+    z: 0.25
+  }
+  type: TYPE_BOX
+  texture: "game/circle"
+  id: "tut_drag_anchor"
+  inherit_alpha: true
+  alpha: 0.6
+  enabled: false
+}
+nodes {
+  size {
+    x: 10.0
+    y: 10.0
+  }
+  color {
+    y: 0.9
+    z: 0.35
+  }
+  type: TYPE_BOX
+  texture: "game/circle"
+  id: "tut_drag_dot1"
+  inherit_alpha: true
+  alpha: 0.6
+  enabled: false
+}
+nodes {
+  size {
+    x: 10.0
+    y: 10.0
+  }
+  color {
+    y: 0.9
+    z: 0.35
+  }
+  type: TYPE_BOX
+  texture: "game/circle"
+  id: "tut_drag_dot2"
+  inherit_alpha: true
+  alpha: 0.6
+  enabled: false
+}
+nodes {
+  size {
+    x: 10.0
+    y: 10.0
+  }
+  color {
+    y: 0.9
+    z: 0.35
+  }
+  type: TYPE_BOX
+  texture: "game/circle"
+  id: "tut_drag_dot3"
+  inherit_alpha: true
+  alpha: 0.6
+  enabled: false
+}
+nodes {
+  size {
+    x: 64.0
+    y: 64.0
+  }
+  type: TYPE_BOX
+  texture: "game/hand"
+  id: "tutorial_hand"
+  inherit_alpha: true
+  alpha: 0.75
+  enabled: false
+}
+nodes {
+  position {
+    x: 480.0
+    y: 430.0
+  }
+  size {
+    x: 340.0
+    y: 74.0
+  }
+  color {
+    x: 0.1
+    y: 0.14
+    z: 0.18
+  }
+  type: TYPE_BOX
+  texture: "game/box"
+  id: "tutorial_hint_panel"
+  yanchor: YANCHOR_TOP
+  inherit_alpha: true
+  slice9 {
+    x: 7.0
+    y: 7.0
+    z: 7.0
+    w: 7.0
+  }
+  alpha: 0.92
+  enabled: false
+}
+nodes {
+  position {
+    y: 18.0
+    z: 0.1
+  }
+  scale {
+    x: 0.44
+    y: 0.44
+  }
+  size {
+    x: 600.0
+    y: 30.0
+  }
+  color {
+    y: 0.88
+    z: 0.25
+  }
+  type: TYPE_TEXT
+  text: "MOVE"
+  font: "system_font"
+  id: "tutorial_hint_title"
+  parent: "tutorial_hint_panel"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    y: -14.0
+    z: 0.1
+  }
+  scale {
+    x: 0.38
+    y: 0.38
+  }
+  size {
+    x: 800.0
+    y: 30.0
+  }
+  color {
+    x: 0.88
+    y: 0.92
+    z: 0.98
+  }
+  type: TYPE_TEXT
+  font: "system_font"
+  id: "tutorial_hint_text"
+  parent: "tutorial_hint_panel"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    y: -8.0
+    z: 0.2
+  }
+  type: TYPE_BOX
+  id: "tutorial_wasd"
+  parent: "tutorial_hint_panel"
+  enabled: false
+}
+nodes {
+  position {
+    y: 24.0
+    z: 0.1
+  }
+  size {
+    x: 44.0
+    y: 44.0
+  }
+  type: TYPE_BOX
+  texture: "game/key_cap"
+  id: "tut_key_w"
+  parent: "tutorial_wasd"
+}
+nodes {
+  position {
+    y: 3.0
+    z: 0.1
+  }
+  scale {
+    x: 0.52
+    y: 0.52
+  }
+  color {
+    x: 0.18
+    y: 0.18
+    z: 0.16
+  }
+  type: TYPE_TEXT
+  text: "W"
+  font: "system_font"
+  id: "tut_key_w_text"
+  parent: "tut_key_w"
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: -48.0
+    y: -24.0
+    z: 0.1
+  }
+  size {
+    x: 44.0
+    y: 44.0
+  }
+  type: TYPE_BOX
+  texture: "game/key_cap"
+  id: "tut_key_a"
+  parent: "tutorial_wasd"
+}
+nodes {
+  position {
+    y: 3.0
+    z: 0.1
+  }
+  scale {
+    x: 0.52
+    y: 0.52
+  }
+  color {
+    x: 0.18
+    y: 0.18
+    z: 0.16
+  }
+  type: TYPE_TEXT
+  text: "A"
+  font: "system_font"
+  id: "tut_key_a_text"
+  parent: "tut_key_a"
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    y: -24.0
+    z: 0.1
+  }
+  size {
+    x: 44.0
+    y: 44.0
+  }
+  type: TYPE_BOX
+  texture: "game/key_cap"
+  id: "tut_key_s"
+  parent: "tutorial_wasd"
+}
+nodes {
+  position {
+    y: 3.0
+    z: 0.1
+  }
+  scale {
+    x: 0.52
+    y: 0.52
+  }
+  color {
+    x: 0.18
+    y: 0.18
+    z: 0.16
+  }
+  type: TYPE_TEXT
+  text: "S"
+  font: "system_font"
+  id: "tut_key_s_text"
+  parent: "tut_key_s"
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 48.0
+    y: -24.0
+    z: 0.1
+  }
+  size {
+    x: 44.0
+    y: 44.0
+  }
+  type: TYPE_BOX
+  texture: "game/key_cap"
+  id: "tut_key_d"
+  parent: "tutorial_wasd"
+}
+nodes {
+  position {
+    y: 3.0
+    z: 0.1
+  }
+  scale {
+    x: 0.52
+    y: 0.52
+  }
+  color {
+    x: 0.18
+    y: 0.18
+    z: 0.16
+  }
+  type: TYPE_TEXT
+  text: "D"
+  font: "system_font"
+  id: "tut_key_d_text"
+  parent: "tut_key_d"
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  size {
+    x: 64.0
+    y: 18.0
+  }
+  color {
+    x: 0.12
+    y: 0.14
+    z: 0.16
+  }
+  type: TYPE_BOX
+  texture: "game/box"
+  id: "marker_player_bg"
+  inherit_alpha: true
+  slice9 {
+    x: 7.0
+    y: 7.0
+    z: 7.0
+    w: 7.0
+  }
+  alpha: 0.95
+  enabled: false
+}
+nodes {
+  position {
+    y: 2.0
+    z: 0.1
+  }
+  scale {
+    x: 0.38
+    y: 0.38
+  }
+  size {
+    x: 120.0
+    y: 18.0
+  }
+  color {
+    x: 0.92
+    y: 0.92
+    z: 0.88
+  }
+  type: TYPE_TEXT
+  text: "YOU"
+  font: "system_font"
+  id: "marker_player_text"
+  parent: "marker_player_bg"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    y: -5.0
+    z: 0.1
+  }
+  size {
+    x: 52.0
+    y: 2.5
+  }
+  color {
+    x: 0.08
+    y: 0.09
+    z: 0.11
+  }
+  type: TYPE_BOX
+  texture: "game/white_pixel"
+  id: "marker_player_hp_bg"
+  parent: "marker_player_bg"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: -26.0
+    z: 0.2
+  }
+  size {
+    x: 52.0
+    y: 2.5
+  }
+  color {
+    x: 0.15
+    y: 0.78
+    z: 0.85
+  }
+  type: TYPE_BOX
+  texture: "game/white_pixel"
+  id: "marker_player_hp_fill"
+  pivot: PIVOT_W
+  parent: "marker_player_hp_bg"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    y: 12.0
+  }
+  rotation {
+    z: -90.0
+  }
+  size {
+    x: 16.0
+    y: 16.0
+  }
+  type: TYPE_BOX
+  texture: "game/arrow"
+  id: "marker_player_arrow"
+  parent: "marker_player_bg"
+  inherit_alpha: true
+}
+nodes {
+  size {
+    x: 68.0
+    y: 18.0
+  }
+  color {
+    x: 0.12
+    y: 0.14
+    z: 0.16
+  }
+  type: TYPE_BOX
+  texture: "game/box"
+  id: "marker_enemy_bg"
+  inherit_alpha: true
+  slice9 {
+    x: 7.0
+    y: 7.0
+    z: 7.0
+    w: 7.0
+  }
+  alpha: 0.95
+  enabled: false
+}
+nodes {
+  position {
+    y: 2.0
+    z: 0.1
+  }
+  scale {
+    x: 0.38
+    y: 0.38
+  }
+  size {
+    x: 120.0
+    y: 18.0
+  }
+  color {
+    x: 0.95
+    y: 0.85
+    z: 0.85
+  }
+  type: TYPE_TEXT
+  text: "ENEMY"
+  font: "system_font"
+  id: "marker_enemy_text"
+  parent: "marker_enemy_bg"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    y: -5.0
+    z: 0.1
+  }
+  size {
+    x: 56.0
+    y: 2.5
+  }
+  color {
+    x: 0.08
+    y: 0.09
+    z: 0.11
+  }
+  type: TYPE_BOX
+  texture: "game/white_pixel"
+  id: "marker_enemy_hp_bg"
+  parent: "marker_enemy_bg"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: -28.0
+    z: 0.2
+  }
+  size {
+    x: 56.0
+    y: 2.5
+  }
+  color {
+    x: 0.95
+    y: 0.28
+    z: 0.24
+  }
+  type: TYPE_BOX
+  texture: "game/white_pixel"
+  id: "marker_enemy_hp_fill"
+  pivot: PIVOT_W
+  parent: "marker_enemy_hp_bg"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    y: 12.0
+  }
+  rotation {
+    z: -90.0
+  }
+  size {
+    x: 16.0
+    y: 16.0
+  }
+  type: TYPE_BOX
+  texture: "game/arrow"
+  id: "marker_enemy_arrow"
+  parent: "marker_enemy_bg"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 480.0
+    y: 460.0
+  }
+  size {
+    x: 320.0
+    y: 38.0
+  }
+  color {
+    x: 0.08
+    y: 0.12
+    z: 0.18
+  }
+  type: TYPE_BOX
+  texture: "game/box"
+  id: "toast_panel"
+  yanchor: YANCHOR_TOP
+  inherit_alpha: true
+  slice9 {
+    x: 4.0
+    y: 4.0
+    z: 4.0
+    w: 4.0
+  }
+  alpha: 0.95
+  enabled: false
+}
+nodes {
+  scale {
+    x: 0.55
+    y: 0.55
+  }
+  size {
+    x: 520.0
+    y: 30.0
+  }
+  color {
+    x: 0.98
+    y: 0.82
+    z: 0.15
+  }
+  type: TYPE_TEXT
+  text: "\357\277\275\0239\357\277\275\357\277\275 ONE SHOT! +50 \320\276\321\207\320\272\320\276\320\262"
+  font: "system_font"
+  id: "toast_text"
+  parent: "toast_panel"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 480.0
+    y: 530.0
+  }
+  size {
+    x: 440.0
+    y: 56.0
+  }
+  color {
+    x: 0.08
+    y: 0.11
+    z: 0.16
+  }
+  type: TYPE_BOX
+  texture: "game/box"
+  id: "ftue_card"
+  yanchor: YANCHOR_TOP
+  inherit_alpha: true
+  slice9 {
+    x: 4.0
+    y: 4.0
+    z: 4.0
+    w: 4.0
+  }
+  alpha: 0.96
+  enabled: false
+}
+nodes {
+  position {
+    y: 11.0
+  }
+  scale {
+    x: 0.44
+    y: 0.44
+  }
+  size {
+    x: 420.0
+    y: 24.0
+  }
+  color {
+    y: 0.85
+    z: 0.2
+  }
+  type: TYPE_TEXT
+  text: "TITLE"
+  font: "system_font"
+  id: "ftue_title"
+  parent: "ftue_card"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    y: -11.0
+  }
+  scale {
+    x: 0.38
+    y: 0.38
+  }
+  size {
+    x: 420.0
+    y: 24.0
+  }
+  color {
+    x: 0.92
+    y: 0.95
+    z: 0.98
+  }
+  type: TYPE_TEXT
+  text: "DESCRIPTION"
+  font: "system_font"
+  id: "ftue_desc"
+  parent: "ftue_card"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 80.0
+    y: 115.0
+  }
+  size {
+    x: 130.0
+    y: 44.0
+  }
+  type: TYPE_BOX
+  texture: "ui/btn_dark"
+  id: "btn_inventory"
+  xanchor: XANCHOR_LEFT
+  yanchor: YANCHOR_BOTTOM
+  inherit_alpha: true
+  slice9 {
+    x: 16.0
+    y: 12.0
+    z: 16.0
+    w: 16.0
+  }
+  alpha: 0.95
+}
+nodes {
+  position {
+    x: -36.0
+    y: 2.0
+  }
+  size {
+    x: 28.0
+    y: 28.0
+  }
+  type: TYPE_BOX
+  texture: "game/grenade"
+  id: "icon_inventory"
+  parent: "btn_inventory"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 14.0
+    y: 9.0
+  }
+  scale {
+    x: 0.3
+    y: 0.3
+  }
+  size {
+    x: 140.0
+    y: 20.0
+  }
+  color {
+    x: 0.95
+    y: 0.77
+    z: 0.06
+  }
+  type: TYPE_TEXT
+  text: "\320\236\320\240\320\243\320\226\320\230\320\225"
+  font: "system_font"
+  id: "txt_inventory"
+  parent: "btn_inventory"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 14.0
+    y: -6.0
+  }
+  scale {
+    x: 0.36
+    y: 0.36
+  }
+  size {
+    x: 140.0
+    y: 18.0
+  }
+  type: TYPE_TEXT
+  text: "INF"
+  font: "system_font"
+  id: "ammo_inventory"
+  parent: "btn_inventory"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 480.0
+    y: 270.0
+  }
+  size {
+    x: 960.0
+    y: 540.0
+  }
+  color {
+    x: 0.04
+    y: 0.06
+    z: 0.1
+  }
+  type: TYPE_BOX
+  texture: "game/white_pixel"
+  id: "inventory_overlay"
+  inherit_alpha: true
+  alpha: 0.88
+  enabled: false
+}
+nodes {
+  size {
+    x: 570.0
+    y: 400.0
+  }
+  color {
+    x: 0.1
+    y: 0.13
+    z: 0.18
+  }
+  type: TYPE_BOX
+  texture: "game/box"
+  id: "inventory_modal"
+  parent: "inventory_overlay"
+  inherit_alpha: true
+  slice9 {
+    x: 4.0
+    y: 4.0
+    z: 4.0
+    w: 4.0
+  }
+  alpha: 0.98
+}
+nodes {
+  position {
+    y: 165.0
+  }
+  scale {
+    x: 0.75
+    y: 0.75
+  }
+  size {
+    x: 400.0
+    y: 32.0
+  }
+  color {
+    x: 0.95
+    y: 0.77
+    z: 0.06
+  }
+  type: TYPE_TEXT
+  text: "\320\230\320\235\320\222\320\225\320\235\320\242\320\220\320\240\320\254 \320\236\320\240\320\243\320\226\320\230\320\257 [Q]"
+  font: "system_font"
+  id: "inventory_title"
+  parent: "inventory_modal"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    y: 135.0
+  }
+  scale {
+    x: 0.4
+    y: 0.4
+  }
+  size {
+    x: 400.0
+    y: 24.0
+  }
+  color {
+    x: 0.78
+    y: 0.84
+    z: 0.92
+  }
+  type: TYPE_TEXT
+  text: "\320\222\320\253\320\221\320\225\320\240\320\230\320\242\320\225 \320\236\320\240\320\243\320\226\320\230\320\225 \320\224\320\233\320\257 \320\222\320\253\320\241\320\242\320\240\320\225\320\233\320\220"
+  font: "system_font"
+  id: "inventory_sub"
+  parent: "inventory_modal"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 248.0
+    y: 165.0
+  }
+  size {
+    x: 42.0
+    y: 34.0
+  }
+  color {
+    x: 0.75
+    y: 0.2
+    z: 0.18
+  }
+  type: TYPE_BOX
+  texture: "game/box"
+  id: "btn_inv_close"
+  parent: "inventory_modal"
+  inherit_alpha: true
+  slice9 {
+    x: 4.0
+    y: 4.0
+    z: 4.0
+    w: 4.0
+  }
+}
+nodes {
+  scale {
+    x: 0.45
+    y: 0.45
+  }
+  size {
+    x: 30.0
+    y: 20.0
+  }
+  type: TYPE_TEXT
+  text: "X"
+  font: "system_font"
+  id: "txt_inv_close"
+  parent: "btn_inv_close"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: -198.0
+    y: 55.0
+  }
+  size {
+    x: 124.0
+    y: 56.0
+  }
+  color {
+    x: 0.18
+    y: 0.24
+    z: 0.32
+  }
+  type: TYPE_BOX
+  texture: "game/box"
+  id: "inv_slot_1"
+  parent: "inventory_modal"
+  inherit_alpha: true
+  slice9 {
+    x: 4.0
+    y: 4.0
+    z: 4.0
+    w: 4.0
+  }
+}
+nodes {
+  position {
+    x: -36.0
+  }
+  size {
+    x: 32.0
+    y: 32.0
+  }
+  type: TYPE_BOX
+  texture: "game/grenade"
+  id: "inv_icon_1"
+  parent: "inv_slot_1"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 18.0
+    y: 10.0
+  }
+  scale {
+    x: 0.35
+    y: 0.35
+  }
+  size {
+    x: 170.0
+    y: 22.0
+  }
+  type: TYPE_TEXT
+  text: "\320\223\321\200\320\260\320\275\320\260\321\202\320\260"
+  font: "system_font"
+  id: "inv_name_1"
+  parent: "inv_slot_1"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 18.0
+    y: -10.0
+  }
+  scale {
+    x: 0.38
+    y: 0.38
+  }
+  size {
+    x: 170.0
+    y: 20.0
+  }
+  color {
+    x: 0.95
+    y: 0.77
+    z: 0.06
+  }
+  type: TYPE_TEXT
+  text: "x0"
+  font: "system_font"
+  id: "inv_ammo_1"
+  parent: "inv_slot_1"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: -66.0
+    y: 55.0
+  }
+  size {
+    x: 124.0
+    y: 56.0
+  }
+  color {
+    x: 0.18
+    y: 0.24
+    z: 0.32
+  }
+  type: TYPE_BOX
+  texture: "game/box"
+  id: "inv_slot_2"
+  parent: "inventory_modal"
+  inherit_alpha: true
+  slice9 {
+    x: 4.0
+    y: 4.0
+    z: 4.0
+    w: 4.0
+  }
+}
+nodes {
+  position {
+    x: -36.0
+  }
+  size {
+    x: 32.0
+    y: 32.0
+  }
+  type: TYPE_BOX
+  texture: "game/skewer_rifle"
+  id: "inv_icon_2"
+  parent: "inv_slot_2"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 18.0
+    y: 10.0
+  }
+  scale {
+    x: 0.35
+    y: 0.35
+  }
+  size {
+    x: 170.0
+    y: 22.0
+  }
+  type: TYPE_TEXT
+  text: "\320\222\320\270\320\275\321\202\320\276\320\262\320\272\320\260"
+  font: "system_font"
+  id: "inv_name_2"
+  parent: "inv_slot_2"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 18.0
+    y: -10.0
+  }
+  scale {
+    x: 0.38
+    y: 0.38
+  }
+  size {
+    x: 170.0
+    y: 20.0
+  }
+  color {
+    x: 0.95
+    y: 0.77
+    z: 0.06
+  }
+  type: TYPE_TEXT
+  text: "x0"
+  font: "system_font"
+  id: "inv_ammo_2"
+  parent: "inv_slot_2"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 66.0
+    y: 55.0
+  }
+  size {
+    x: 124.0
+    y: 56.0
+  }
+  color {
+    x: 0.18
+    y: 0.24
+    z: 0.32
+  }
+  type: TYPE_BOX
+  texture: "game/box"
+  id: "inv_slot_3"
+  parent: "inventory_modal"
+  inherit_alpha: true
+  slice9 {
+    x: 4.0
+    y: 4.0
+    z: 4.0
+    w: 4.0
+  }
+}
+nodes {
+  position {
+    x: -36.0
+  }
+  size {
+    x: 32.0
+    y: 32.0
+  }
+  type: TYPE_BOX
+  texture: "game/peeler"
+  id: "inv_icon_3"
+  parent: "inv_slot_3"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 18.0
+    y: 10.0
+  }
+  scale {
+    x: 0.35
+    y: 0.35
+  }
+  size {
+    x: 170.0
+    y: 22.0
+  }
+  type: TYPE_TEXT
+  text: "\320\235\320\276\320\266-\321\207\320\270\321\201\321\202\320\272\320\260"
+  font: "system_font"
+  id: "inv_name_3"
+  parent: "inv_slot_3"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 18.0
+    y: -10.0
+  }
+  scale {
+    x: 0.38
+    y: 0.38
+  }
+  size {
+    x: 170.0
+    y: 20.0
+  }
+  color {
+    x: 0.95
+    y: 0.77
+    z: 0.06
+  }
+  type: TYPE_TEXT
+  text: "x0"
+  font: "system_font"
+  id: "inv_ammo_3"
+  parent: "inv_slot_3"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 198.0
+    y: 55.0
+  }
+  size {
+    x: 124.0
+    y: 56.0
+  }
+  color {
+    x: 0.18
+    y: 0.24
+    z: 0.32
+  }
+  type: TYPE_BOX
+  texture: "game/box"
+  id: "inv_slot_4"
+  parent: "inventory_modal"
+  inherit_alpha: true
+  slice9 {
+    x: 4.0
+    y: 4.0
+    z: 4.0
+    w: 4.0
+  }
+}
+nodes {
+  position {
+    x: -36.0
+  }
+  size {
+    x: 32.0
+    y: 32.0
+  }
+  type: TYPE_BOX
+  texture: "game/oil_bottle"
+  id: "inv_icon_4"
+  parent: "inv_slot_4"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 18.0
+    y: 10.0
+  }
+  scale {
+    x: 0.35
+    y: 0.35
+  }
+  size {
+    x: 170.0
+    y: 22.0
+  }
+  type: TYPE_TEXT
+  text: "\320\234\320\276\320\273\320\276\321\202\320\276\320\262"
+  font: "system_font"
+  id: "inv_name_4"
+  parent: "inv_slot_4"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 18.0
+    y: -10.0
+  }
+  scale {
+    x: 0.38
+    y: 0.38
+  }
+  size {
+    x: 170.0
+    y: 20.0
+  }
+  color {
+    x: 0.95
+    y: 0.77
+    z: 0.06
+  }
+  type: TYPE_TEXT
+  text: "x0"
+  font: "system_font"
+  id: "inv_ammo_4"
+  parent: "inv_slot_4"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: -198.0
+    y: -15.0
+  }
+  size {
+    x: 124.0
+    y: 56.0
+  }
+  color {
+    x: 0.18
+    y: 0.24
+    z: 0.32
+  }
+  type: TYPE_BOX
+  texture: "game/box"
+  id: "inv_slot_5"
+  parent: "inventory_modal"
+  inherit_alpha: true
+  slice9 {
+    x: 4.0
+    y: 4.0
+    z: 4.0
+    w: 4.0
+  }
+}
+nodes {
+  position {
+    x: -36.0
+  }
+  size {
+    x: 32.0
+    y: 32.0
+  }
+  type: TYPE_BOX
+  texture: "game/rifle"
+  id: "inv_icon_5"
+  parent: "inv_slot_5"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 18.0
+    y: 10.0
+  }
+  scale {
+    x: 0.35
+    y: 0.35
+  }
+  size {
+    x: 170.0
+    y: 22.0
+  }
+  type: TYPE_TEXT
+  text: "\320\220\320\262\321\202\320\276\320\274\320\260\321\202"
+  font: "system_font"
+  id: "inv_name_5"
+  parent: "inv_slot_5"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 18.0
+    y: -10.0
+  }
+  scale {
+    x: 0.38
+    y: 0.38
+  }
+  size {
+    x: 170.0
+    y: 20.0
+  }
+  color {
+    x: 0.95
+    y: 0.77
+    z: 0.06
+  }
+  type: TYPE_TEXT
+  text: "x0"
+  font: "system_font"
+  id: "inv_ammo_5"
+  parent: "inv_slot_5"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: -66.0
+    y: -15.0
+  }
+  size {
+    x: 124.0
+    y: 56.0
+  }
+  color {
+    x: 0.18
+    y: 0.24
+    z: 0.32
+  }
+  type: TYPE_BOX
+  texture: "game/box"
+  id: "inv_slot_6"
+  parent: "inventory_modal"
+  inherit_alpha: true
+  slice9 {
+    x: 4.0
+    y: 4.0
+    z: 4.0
+    w: 4.0
+  }
+}
+nodes {
+  position {
+    x: -36.0
+  }
+  size {
+    x: 32.0
+    y: 32.0
+  }
+  type: TYPE_BOX
+  texture: "game/masher_bazooka"
+  id: "inv_icon_6"
+  parent: "inv_slot_6"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 18.0
+    y: 10.0
+  }
+  scale {
+    x: 0.35
+    y: 0.35
+  }
+  size {
+    x: 170.0
+    y: 22.0
+  }
+  type: TYPE_TEXT
+  text: "\320\221\320\260\320\267\321\203\320\272\320\260"
+  font: "system_font"
+  id: "inv_name_6"
+  parent: "inv_slot_6"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 18.0
+    y: -10.0
+  }
+  scale {
+    x: 0.38
+    y: 0.38
+  }
+  size {
+    x: 170.0
+    y: 20.0
+  }
+  color {
+    x: 0.95
+    y: 0.77
+    z: 0.06
+  }
+  type: TYPE_TEXT
+  text: "x0"
+  font: "system_font"
+  id: "inv_ammo_6"
+  parent: "inv_slot_6"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 66.0
+    y: -15.0
+  }
+  size {
+    x: 124.0
+    y: 56.0
+  }
+  color {
+    x: 0.18
+    y: 0.24
+    z: 0.32
+  }
+  type: TYPE_BOX
+  texture: "game/box"
+  id: "inv_slot_7"
+  parent: "inventory_modal"
+  inherit_alpha: true
+  slice9 {
+    x: 4.0
+    y: 4.0
+    z: 4.0
+    w: 4.0
+  }
+}
+nodes {
+  position {
+    x: -36.0
+  }
+  size {
+    x: 32.0
+    y: 32.0
+  }
+  type: TYPE_BOX
+  texture: "game/grater"
+  id: "inv_icon_7"
+  parent: "inv_slot_7"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 18.0
+    y: 10.0
+  }
+  scale {
+    x: 0.35
+    y: 0.35
+  }
+  size {
+    x: 170.0
+    y: 22.0
+  }
+  type: TYPE_TEXT
+  text: "\320\224\321\200\320\276\320\261\320\276\320\262\320\270\320\272"
+  font: "system_font"
+  id: "inv_name_7"
+  parent: "inv_slot_7"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 18.0
+    y: -10.0
+  }
+  scale {
+    x: 0.38
+    y: 0.38
+  }
+  size {
+    x: 170.0
+    y: 20.0
+  }
+  color {
+    x: 0.95
+    y: 0.77
+    z: 0.06
+  }
+  type: TYPE_TEXT
+  text: "x0"
+  font: "system_font"
+  id: "inv_ammo_7"
+  parent: "inv_slot_7"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 198.0
+    y: -15.0
+  }
+  size {
+    x: 124.0
+    y: 56.0
+  }
+  color {
+    x: 0.18
+    y: 0.24
+    z: 0.32
+  }
+  type: TYPE_BOX
+  texture: "game/box"
+  id: "inv_slot_8"
+  parent: "inventory_modal"
+  inherit_alpha: true
+  slice9 {
+    x: 4.0
+    y: 4.0
+    z: 4.0
+    w: 4.0
+  }
+}
+nodes {
+  position {
+    x: -36.0
+  }
+  size {
+    x: 32.0
+    y: 32.0
+  }
+  type: TYPE_BOX
+  texture: "game/holy_spud"
+  id: "inv_icon_8"
+  parent: "inv_slot_8"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 18.0
+    y: 10.0
+  }
+  scale {
+    x: 0.35
+    y: 0.35
+  }
+  size {
+    x: 170.0
+    y: 22.0
+  }
+  type: TYPE_TEXT
+  text: "\320\227\320\276\320\273\320\276\321\202\320\276\320\271 \320\272\320\273\321\203\320\261\320\265\320\275\321\214"
+  font: "system_font"
+  id: "inv_name_8"
+  parent: "inv_slot_8"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 18.0
+    y: -10.0
+  }
+  scale {
+    x: 0.38
+    y: 0.38
+  }
+  size {
+    x: 170.0
+    y: 20.0
+  }
+  color {
+    x: 0.95
+    y: 0.77
+    z: 0.06
+  }
+  type: TYPE_TEXT
+  text: "x0"
+  font: "system_font"
+  id: "inv_ammo_8"
+  parent: "inv_slot_8"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: -198.0
+    y: -85.0
+  }
+  size {
+    x: 124.0
+    y: 56.0
+  }
+  color {
+    x: 0.18
+    y: 0.24
+    z: 0.32
+  }
+  type: TYPE_BOX
+  texture: "game/box"
+  id: "inv_slot_9"
+  parent: "inventory_modal"
+  inherit_alpha: true
+  slice9 {
+    x: 4.0
+    y: 4.0
+    z: 4.0
+    w: 4.0
+  }
+}
+nodes {
+  position {
+    x: -36.0
+  }
+  size {
+    x: 32.0
+    y: 32.0
+  }
+  type: TYPE_BOX
+  texture: "game/beetle_crate"
+  id: "inv_icon_9"
+  parent: "inv_slot_9"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 18.0
+    y: 10.0
+  }
+  scale {
+    x: 0.35
+    y: 0.35
+  }
+  size {
+    x: 170.0
+    y: 22.0
+  }
+  type: TYPE_TEXT
+  text: "\320\224\320\265\321\201\320\260\320\275\321\202 \320\266\321\203\320\272\320\276\320\262"
+  font: "system_font"
+  id: "inv_name_9"
+  parent: "inv_slot_9"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 18.0
+    y: -10.0
+  }
+  scale {
+    x: 0.38
+    y: 0.38
+  }
+  size {
+    x: 170.0
+    y: 20.0
+  }
+  color {
+    x: 0.95
+    y: 0.77
+    z: 0.06
+  }
+  type: TYPE_TEXT
+  text: "x0"
+  font: "system_font"
+  id: "inv_ammo_9"
+  parent: "inv_slot_9"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: -66.0
+    y: -85.0
+  }
+  size {
+    x: 124.0
+    y: 56.0
+  }
+  color {
+    x: 0.18
+    y: 0.24
+    z: 0.32
+  }
+  type: TYPE_BOX
+  texture: "game/box"
+  id: "inv_slot_10"
+  parent: "inventory_modal"
+  inherit_alpha: true
+  slice9 {
+    x: 4.0
+    y: 4.0
+    z: 4.0
+    w: 4.0
+  }
+}
+nodes {
+  position {
+    x: -36.0
+  }
+  size {
+    x: 32.0
+    y: 32.0
+  }
+  type: TYPE_BOX
+  texture: "game/drill_missile"
+  id: "inv_icon_10"
+  parent: "inv_slot_10"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 18.0
+    y: 10.0
+  }
+  scale {
+    x: 0.35
+    y: 0.35
+  }
+  size {
+    x: 170.0
+    y: 22.0
+  }
+  type: TYPE_TEXT
+  text: "\320\221\321\203\321\200-\321\200\320\260\320\272\320\265\321\202\320\260"
+  font: "system_font"
+  id: "inv_name_10"
+  parent: "inv_slot_10"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 18.0
+    y: -10.0
+  }
+  scale {
+    x: 0.38
+    y: 0.38
+  }
+  size {
+    x: 170.0
+    y: 20.0
+  }
+  color {
+    x: 0.95
+    y: 0.77
+    z: 0.06
+  }
+  type: TYPE_TEXT
+  text: "x0"
+  font: "system_font"
+  id: "inv_ammo_10"
+  parent: "inv_slot_10"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 66.0
+    y: -85.0
+  }
+  size {
+    x: 124.0
+    y: 56.0
+  }
+  color {
+    x: 0.18
+    y: 0.24
+    z: 0.32
+  }
+  type: TYPE_BOX
+  texture: "game/box"
+  id: "inv_slot_11"
+  parent: "inventory_modal"
+  inherit_alpha: true
+  slice9 {
+    x: 4.0
+    y: 4.0
+    z: 4.0
+    w: 4.0
+  }
+}
+nodes {
+  position {
+    x: -36.0
+  }
+  size {
+    x: 32.0
+    y: 32.0
+  }
+  type: TYPE_BOX
+  texture: "game/pepper_bomb"
+  id: "inv_icon_11"
+  parent: "inv_slot_11"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 18.0
+    y: 10.0
+  }
+  scale {
+    x: 0.35
+    y: 0.35
+  }
+  size {
+    x: 170.0
+    y: 22.0
+  }
+  type: TYPE_TEXT
+  text: "\320\247\320\270\320\273\320\270-\320\277\320\265\321\200\321\206\320\265\320\274\320\276\320\273\320\272\320\260"
+  font: "system_font"
+  id: "inv_name_11"
+  parent: "inv_slot_11"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 18.0
+    y: -10.0
+  }
+  scale {
+    x: 0.38
+    y: 0.38
+  }
+  size {
+    x: 170.0
+    y: 20.0
+  }
+  color {
+    x: 0.95
+    y: 0.77
+    z: 0.06
+  }
+  type: TYPE_TEXT
+  text: "x0"
+  font: "system_font"
+  id: "inv_ammo_11"
+  parent: "inv_slot_11"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 198.0
+    y: -85.0
+  }
+  size {
+    x: 124.0
+    y: 56.0
+  }
+  color {
+    x: 0.18
+    y: 0.24
+    z: 0.32
+  }
+  type: TYPE_BOX
+  texture: "game/box"
+  id: "inv_slot_12"
+  parent: "inventory_modal"
+  inherit_alpha: true
+  slice9 {
+    x: 4.0
+    y: 4.0
+    z: 4.0
+    w: 4.0
+  }
+}
+nodes {
+  position {
+    x: -36.0
+  }
+  size {
+    x: 32.0
+    y: 32.0
+  }
+  type: TYPE_BOX
+  texture: "game/garlic_bomb"
+  id: "inv_icon_12"
+  parent: "inv_slot_12"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 18.0
+    y: 10.0
+  }
+  scale {
+    x: 0.35
+    y: 0.35
+  }
+  size {
+    x: 170.0
+    y: 22.0
+  }
+  type: TYPE_TEXT
+  text: "\320\247\320\265\321\201\320\275\320\276\320\272-\320\264\320\270\320\275\320\260\320\274\320\270\321\202"
+  font: "system_font"
+  id: "inv_name_12"
+  parent: "inv_slot_12"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 18.0
+    y: -10.0
+  }
+  scale {
+    x: 0.38
+    y: 0.38
+  }
+  size {
+    x: 170.0
+    y: 20.0
+  }
+  color {
+    x: 0.95
+    y: 0.77
+    z: 0.06
+  }
+  type: TYPE_TEXT
+  text: "x0"
+  font: "system_font"
+  id: "inv_ammo_12"
+  parent: "inv_slot_12"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: -198.0
+    y: -155.0
+  }
+  size {
+    x: 124.0
+    y: 56.0
+  }
+  color {
+    x: 0.18
+    y: 0.24
+    z: 0.32
+  }
+  type: TYPE_BOX
+  texture: "game/box"
+  id: "inv_slot_13"
+  parent: "inventory_modal"
+  inherit_alpha: true
+  slice9 {
+    x: 4.0
+    y: 4.0
+    z: 4.0
+    w: 4.0
+  }
+}
+nodes {
+  position {
+    x: -36.0
+  }
+  size {
+    x: 32.0
+    y: 32.0
+  }
+  type: TYPE_BOX
+  texture: "game/w_cluster"
+  id: "inv_icon_13"
+  parent: "inv_slot_13"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 18.0
+    y: 10.0
+  }
+  scale {
+    x: 0.35
+    y: 0.35
+  }
+  size {
+    x: 170.0
+    y: 22.0
+  }
+  type: TYPE_TEXT
+  text: "Cluster Bomb"
+  font: "system_font"
+  id: "inv_name_13"
+  parent: "inv_slot_13"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 18.0
+    y: -10.0
+  }
+  scale {
+    x: 0.38
+    y: 0.38
+  }
+  size {
+    x: 170.0
+    y: 20.0
+  }
+  color {
+    x: 0.95
+    y: 0.77
+    z: 0.06
+  }
+  type: TYPE_TEXT
+  text: "x0"
+  font: "system_font"
+  id: "inv_ammo_13"
+  parent: "inv_slot_13"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: -66.0
+    y: -155.0
+  }
+  size {
+    x: 124.0
+    y: 56.0
+  }
+  color {
+    x: 0.18
+    y: 0.24
+    z: 0.32
+  }
+  type: TYPE_BOX
+  texture: "game/box"
+  id: "inv_slot_14"
+  parent: "inventory_modal"
+  inherit_alpha: true
+  slice9 {
+    x: 4.0
+    y: 4.0
+    z: 4.0
+    w: 4.0
+  }
+}
+nodes {
+  position {
+    x: -36.0
+  }
+  size {
+    x: 32.0
+    y: 32.0
+  }
+  type: TYPE_BOX
+  texture: "game/w_homing"
+  id: "inv_icon_14"
+  parent: "inv_slot_14"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 18.0
+    y: 10.0
+  }
+  scale {
+    x: 0.35
+    y: 0.35
+  }
+  size {
+    x: 170.0
+    y: 22.0
+  }
+  type: TYPE_TEXT
+  text: "Homing Missile"
+  font: "system_font"
+  id: "inv_name_14"
+  parent: "inv_slot_14"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 18.0
+    y: -10.0
+  }
+  scale {
+    x: 0.38
+    y: 0.38
+  }
+  size {
+    x: 170.0
+    y: 20.0
+  }
+  color {
+    x: 0.95
+    y: 0.77
+    z: 0.06
+  }
+  type: TYPE_TEXT
+  text: "x0"
+  font: "system_font"
+  id: "inv_ammo_14"
+  parent: "inv_slot_14"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 66.0
+    y: -155.0
+  }
+  size {
+    x: 124.0
+    y: 56.0
+  }
+  color {
+    x: 0.18
+    y: 0.24
+    z: 0.32
+  }
+  type: TYPE_BOX
+  texture: "game/box"
+  id: "inv_slot_15"
+  parent: "inventory_modal"
+  inherit_alpha: true
+  slice9 {
+    x: 4.0
+    y: 4.0
+    z: 4.0
+    w: 4.0
+  }
+}
+nodes {
+  position {
+    x: -36.0
+  }
+  size {
+    x: 32.0
+    y: 32.0
+  }
+  type: TYPE_BOX
+  texture: "game/w_holy"
+  id: "inv_icon_15"
+  parent: "inv_slot_15"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 18.0
+    y: 10.0
+  }
+  scale {
+    x: 0.35
+    y: 0.35
+  }
+  size {
+    x: 170.0
+    y: 22.0
+  }
+  type: TYPE_TEXT
+  text: "Holy Grenade"
+  font: "system_font"
+  id: "inv_name_15"
+  parent: "inv_slot_15"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 18.0
+    y: -10.0
+  }
+  scale {
+    x: 0.38
+    y: 0.38
+  }
+  size {
+    x: 170.0
+    y: 20.0
+  }
+  color {
+    x: 0.95
+    y: 0.77
+    z: 0.06
+  }
+  type: TYPE_TEXT
+  text: "x0"
+  font: "system_font"
+  id: "inv_ammo_15"
+  parent: "inv_slot_15"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 198.0
+    y: -155.0
+  }
+  size {
+    x: 124.0
+    y: 56.0
+  }
+  color {
+    x: 0.18
+    y: 0.24
+    z: 0.32
+  }
+  type: TYPE_BOX
+  texture: "game/box"
+  id: "inv_slot_16"
+  parent: "inventory_modal"
+  inherit_alpha: true
+  slice9 {
+    x: 4.0
+    y: 4.0
+    z: 4.0
+    w: 4.0
+  }
+}
+nodes {
+  position {
+    x: -36.0
+  }
+  size {
+    x: 32.0
+    y: 32.0
+  }
+  type: TYPE_BOX
+  texture: "game/w_airstrike"
+  id: "inv_icon_16"
+  parent: "inv_slot_16"
+  inherit_alpha: true
+}
+nodes {
+  position {
+    x: 18.0
+    y: 10.0
+  }
+  scale {
+    x: 0.35
+    y: 0.35
+  }
+  size {
+    x: 170.0
+    y: 22.0
+  }
+  type: TYPE_TEXT
+  text: "Airstrike"
+  font: "system_font"
+  id: "inv_name_16"
+  parent: "inv_slot_16"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+nodes {
+  position {
+    x: 18.0
+    y: -10.0
+  }
+  scale {
+    x: 0.38
+    y: 0.38
+  }
+  size {
+    x: 170.0
+    y: 20.0
+  }
+  color {
+    x: 0.95
+    y: 0.77
+    z: 0.06
+  }
+  type: TYPE_TEXT
+  text: "x0"
+  font: "system_font"
+  id: "inv_ammo_16"
+  parent: "inv_slot_16"
+  inherit_alpha: true
+  outline_alpha: 0.0
+  shadow_alpha: 0.0
+}
+material: "/builtins/materials/gui.material"
+adjust_reference: ADJUST_REFERENCE_PARENT
+max_nodes: 1024
