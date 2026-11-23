@@ -55,15 +55,15 @@ M.CASTLE_COLS = 12
 M.CASTLE_ROWS = 12
 M.ROOM_CELLS = 4
 M.CASTLE_BOTTOM = 200
-M.PLAYER_X0 = 80
-M.ENEMY_X0 = 888
+M.PLAYER_X0 = 20
+M.ENEMY_X0 = 948
 M.PLAYER_TILT = math.rad(-1)
 M.ENEMY_TILT = math.rad(2.2)
 M.UNIT_SIZE = 52
 M.UNIT_HIT_R = 20
 
 M.BRICK_HP = {
-	blue = 45, red = 45, wood = 30, stone = 60, steel = 105, barrel = 15,
+	blue = 40, red = 40, wood = 25, stone = 55, steel = 90, barrel = 15,
 }
 M.BRICK_RESIST = {
 	stone = 1.25, steel = 1.5,
@@ -74,6 +74,10 @@ M.BARREL_BLAST = { radius = 85, wall = 70, unit = 45 }
 M.AI_DELAY = 0.7
 M.TURN_DELAY = 0.6
 M.HITSTOP = 0.045
+M.AIM_ZOOM = 0.88
+M.POWER_CURVE = 0.9
+M.PROJECTILE_SCALE = 1.5
+M.PROJECTILE_RADIUS = 11
 
 
 function M.log(...)
@@ -85,4 +89,5 @@ function M.log(...)
 end
 
 return M
+
 

@@ -68,9 +68,9 @@ function init(self)
 	slice9(self.pause_btn, 14)
 	icon("ui_pause", 1232, 686, 30, 30)
 
-	-- keep names
-	label("label", i18n.t("keep_blue"), 236, 660, CREAM, 0.62)
-	label("label", i18n.t("keep_red"), 1044, 660, CREAM, 0.62)
+	-- keep names (follow the camera so the aim zoom keeps them on the castles)
+	self.keep_blue = label("label", i18n.t("keep_blue"), 176, 660, CREAM, 0.62)
+	self.keep_red = label("label", i18n.t("keep_red"), 1104, 660, CREAM, 0.62)
 
 	-- turn banner
 	self.banner = icon("ui_pill", 640, 686, 390, 58)
@@ -124,6 +124,15 @@ function init(self)
 end
 
 -- ------------------------------------------------------------------ input
+function update(self, dt)
+	if self.keep_blue then
+		local bx, by = camera.world_to_screen(176, 660)
+		gui.set_position(self.keep_blue, vmath.vector3(bx, by, 0))
+		local rx, ry = camera.world_to_screen(1104, 660)
+		gui.set_position(self.keep_red, vmath.vector3(rx, ry, 0))
+	end
+end
+
 function on_input(self, action_id, action)
 	if action_id ~= hash("touch") or not action.pressed then
 		return false

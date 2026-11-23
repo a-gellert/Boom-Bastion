@@ -182,6 +182,22 @@ function M.build_pools(self)
 		disable_go(id)
 		b.dots[i] = { id = id, url = url, active = false }
 	end
+	-- aim rubber band + knob
+	local lid = factory.create("#sprite_factory", vmath.vector3(0, 0, -0.42))
+	local lurl = url_of(lid)
+	sprite.play_flipbook(lurl, hash("white_pixel"))
+	go.set_scale(vmath.vector3(0.01, 0.01, 1), lid)
+	go.set(lurl, "tint", vmath.vector4(1, 1, 1, 0.65))
+	disable_go(lid)
+	b.aim_line = { id = lid, url = lurl, active = false }
+	local kid = factory.create("#sprite_factory", vmath.vector3(0, 0, -0.41))
+	local kurl = url_of(kid)
+	sprite.play_flipbook(kurl, hash("circle"))
+	go.set_scale(vmath.vector3(0.9, 0.9, 1), kid)
+	go.set(kurl, "tint", vmath.vector4(1.0, 0.8, 0.25, 0.85))
+	disable_go(kid)
+	b.aim_knob = { id = kid, url = kurl, active = false }
+
 	-- selection ring
 	local id = factory.create("#sprite_factory", vmath.vector3(0, 0, Z.selection))
 	local url = url_of(id)
@@ -231,6 +247,9 @@ function M.start_battle(self)
 	b.aim = nil
 	b.time = 0
 	b.resolve_timer = 0
+	camera.set_zoom(1.0)
+	M.hide_aim_line(self)
+	M.hide_preview(self)
 
 	b.player = Castle.new({
 		team = "player", x0 = constants.PLAYER_X0, tilt = constants.PLAYER_TILT,
@@ -521,7 +540,7 @@ function M.apply_gate(self, p, g)
 				vx = math.cos(angle) * speed, vy = math.sin(angle) * speed,
 				gravity = p.gravity, blast = p.blast, wall = p.wall, unit = p.unit_damage,
 				pierce = p.pierce, anim = p.anim, team = p.team, owner = p.owner,
-				gate_hit = p.gate_hit, radius = p.radius, heavy = p.heavy,
+				gate_hit = p.gate_hit, radius = p.radius, heavy = p.heavy, scale = p.scale,
 			})
 		end
 		M.spawn_fx(self, "fx_star", g.x, g.y, Z.fx, 34, 34, WHITE, 0, 0, 0, 0.35, 0, 1, 0)
@@ -531,10 +550,11 @@ function M.apply_gate(self, p, g)
 		go.set(p.slot.url, "tint", vmath.vector4(1, 0.55, 0.2, 1))
 	elseif g.type == "giant" then
 		p.radius = p.radius * 1.6
+		p.scale = p.scale * 1.6
 		p.blast = p.blast * 1.6
 		p.wall = p.wall * 1.6
 		p.unit_damage = p.unit_damage * 1.2
-		go.set_scale(vmath.vector3(1.6, 1.6, 1), p.slot.id)
+		go.set_scale(vmath.vector3(p.scale, p.scale, 1), p.slot.id)
 	elseif g.type == "pierce" then
 		p.pierce = p.pierce + 1
 	elseif g.type == "speed" then
@@ -555,6 +575,8 @@ function M.spawn_projectile(self, opts)
 	enable_go(slot.id)
 	local anim = opts.anim or "proj_bomb"
 	set_anim(self, slot, anim, nil, nil, WHITE)
+	local p_scale = opts.scale or constants.PROJECTILE_SCALE
+	go.set_scale(vmath.vector3(p_scale, p_scale, 1), slot.id)
 	go.set_position(vmath.vector3(opts.x, opts.y, Z.projectile), slot.id)
 	local gate_hit = {}
 	if opts.gate_hit then
@@ -569,7 +591,8 @@ function M.spawn_projectile(self, opts)
 		wall = opts.wall,
 		unit_damage = opts.unit,
 		pierce = opts.pierce or 0,
-		radius = opts.radius or 8,
+		radius = opts.radius or constants.PROJECTILE_RADIUS,
+		scale = p_scale,
 		anim = anim,
 		team = opts.team,
 		owner = opts.owner,
@@ -892,7 +915,8 @@ function M.compute_aim(self, sx, sy)
 	end
 	local power = math.min(len, constants.MAX_PULL)
 	local role = units_db.get(u.role)
-	local speed = (constants.MIN_SPEED + (power / constants.MAX_PULL) * (constants.MAX_SPEED - constants.MIN_SPEED)) * role.speed
+	local t = (power / constants.MAX_PULL) ^ constants.POWER_CURVE
+	local speed = (constants.MIN_SPEED + t * (constants.MAX_SPEED - constants.MIN_SPEED)) * role.speed
 	local nx, ny = -dx / len, -dy / len
 	local vx, vy = nx * speed, ny * speed
 	local gravity = constants.GRAVITY * (role.gravity or 1)
@@ -916,9 +940,9 @@ function M.show_preview(self, dots)
 			d.active = true
 			enable_go(d.id)
 			go.set_position(vmath.vector3(pt.x, pt.y, Z.dots), d.id)
-			local a = 0.95 - i * 0.03
+			local a = 1.0 - i * 0.028
 			go.set(d.url, "tint", vmath.vector4(1, 1, 1, a))
-			go.set_scale(vmath.vector3(1, 1, 1), d.id)
+			go.set_scale(vmath.vector3(1.5, 1.5, 1), d.id)
 		elseif d.active then
 			d.active = false
 			disable_go(d.id)
@@ -935,9 +959,59 @@ function M.hide_preview(self)
 	end
 end
 
+function M.update_aim_line(self, sx, sy, power)
+	local b = self.battle
+	local u = M.current_unit(self)
+	if not u or not u.alive then
+		M.hide_aim_line(self)
+		return
+	end
+	local wx, wy = camera.screen_to_world(sx, sy)
+	local x0, y0 = u.x, u.y + 6
+	local dx, dy = wx - x0, wy - y0
+	local len = math.sqrt(dx * dx + dy * dy)
+	if len < 10 then
+		M.hide_aim_line(self)
+		return
+	end
+	local line = b.aim_line
+	if not line.active then
+		line.active = true
+		enable_go(line.id)
+	end
+	local knob = b.aim_knob
+	if not knob.active then
+		knob.active = true
+		enable_go(knob.id)
+	end
+	go.set_position(vmath.vector3((x0 + wx) * 0.5, (y0 + wy) * 0.5, -0.42), line.id)
+	go.set_rotation(vmath.quat_rotation_z(math.atan2(dy, dx)), line.id)
+	local t = math.max(0, math.min(1, power or len / constants.MAX_PULL))
+	go.set_scale(vmath.vector3(len / 16, 0.2 + 0.28 * t, 1), line.id)
+	go.set(line.url, "tint", vmath.vector4(1, 0.95 - 0.55 * t, 0.75 - 0.65 * t, 0.75))
+	go.set_position(vmath.vector3(wx, wy, -0.41), knob.id)
+	local ks = 0.8 + 0.6 * t
+	go.set_scale(vmath.vector3(ks, ks, 1), knob.id)
+	go.set(knob.url, "tint", vmath.vector4(1, 0.85 - 0.3 * t, 0.25, 0.92))
+end
+
+function M.hide_aim_line(self)
+	local b = self.battle
+	if b.aim_line and b.aim_line.active then
+		b.aim_line.active = false
+		disable_go(b.aim_line.id)
+	end
+	if b.aim_knob and b.aim_knob.active then
+		b.aim_knob.active = false
+		disable_go(b.aim_knob.id)
+	end
+end
+
 function M.cancel_aim(self)
 	self.battle.aiming = false
 	self.battle.aim = nil
+	camera.set_zoom(1.0)
+	M.hide_aim_line(self)
 	M.hide_preview(self)
 end
 
@@ -946,6 +1020,8 @@ function M.release_aim(self)
 	local aim = b.aim
 	b.aiming = false
 	b.aim = nil
+	camera.set_zoom(1.0)
+	M.hide_aim_line(self)
 	M.hide_preview(self)
 	if not aim then return end
 	local u = M.current_unit(self)
@@ -979,8 +1055,11 @@ function M.on_input(self, action_id, action)
 			if u and u.alive then
 				b.aiming = true
 				b.aim_sx, b.aim_sy = action.x, action.y
+				b.aim_cx, b.aim_cy = action.x, action.y
 				b.aim = nil
+				camera.set_zoom(constants.AIM_ZOOM)
 				M.hide_preview(self)
+				M.hide_aim_line(self)
 				return true
 			end
 		elseif b.aiming then
@@ -988,10 +1067,13 @@ function M.on_input(self, action_id, action)
 				M.release_aim(self)
 				return true
 			end
+			b.aim_cx, b.aim_cy = action.x, action.y
 			b.aim = M.compute_aim(self, action.x, action.y)
 			if b.aim then
+				M.update_aim_line(self, action.x, action.y, b.aim.power)
 				M.show_preview(self, b.aim.dots)
 			else
+				M.hide_aim_line(self)
 				M.hide_preview(self)
 			end
 			return true
@@ -1178,6 +1260,8 @@ function M.start_enemy_turn(self)
 	b.state = "enemy"
 	b.turn = "enemy"
 	b.timer = constants.AI_DELAY
+	camera.set_zoom(1.0)
+	M.hide_aim_line(self)
 	M.banner(self, i18n.t("enemy_turn"))
 	M.update_hud(self)
 end
@@ -1197,6 +1281,8 @@ function M.finish(self, win)
 	local b = self.battle
 	b.state = "over"
 	b.winner = win and "player" or "enemy"
+	camera.set_zoom(1.0)
+	M.hide_aim_line(self)
 	M.hide_preview(self)
 	if win then
 		audio.play("win")
