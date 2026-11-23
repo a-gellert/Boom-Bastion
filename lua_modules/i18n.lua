@@ -31,6 +31,7 @@ local D = {
 		retry = "RETRY",
 		hint_aim = "Pull back · Release to fire",
 		hint_enemy = "Enemy is aiming...",
+		comic_boom = "BOOM!",
 	},
 	ru = {
 		app_title = "BASTION BLAST",
@@ -53,6 +54,7 @@ local D = {
 		retry = "ЗАНОВО",
 		hint_aim = "Оттяни · Отпусти, чтобы выстрелить",
 		hint_enemy = "Враг целится...",
+		comic_boom = "БАХ!",
 	},
 	pt = {
 		app_title = "BASTION BLAST",
@@ -75,6 +77,7 @@ local D = {
 		retry = "TENTAR DE NOVO",
 		hint_aim = "Puxe para trás · Solte para atirar",
 		hint_enemy = "O inimigo está mirando...",
+		comic_boom = "BUM!",
 	},
 	tr = {
 		app_title = "BASTION BLAST",
@@ -97,6 +100,7 @@ local D = {
 		retry = "TEKRAR",
 		hint_aim = "Geri çek · Ateş için bırak",
 		hint_enemy = "Düşman nişan alıyor...",
+		comic_boom = "GÜM!",
 	},
 }
 

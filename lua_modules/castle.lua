@@ -165,7 +165,8 @@ function M.bottom_alive(room)
 end
 
 -- A room is supported when it is the next standing level above the highest
--- supported room in its column (the ground is level -1).
+-- supported room in its column (the ground is level -1). A floor with fewer
+-- than two alive bricks no longer carries the room above.
 function M.update_support(castle)
 	for cc = 0, ROOMS_PER_SIDE - 1 do
 		local col = castle.columns[cc]
@@ -174,11 +175,52 @@ function M.update_support(castle)
 		for _, room in ipairs(col) do
 			room.standing = M.alive_count(room) >= 2
 			room.supported = room.standing and room.level == top + 1
+				and (room.level == 0 or M.bottom_alive(room) >= 2)
 			if room.supported then
 				top = room.level
 			end
 		end
 	end
+end
+
+-- Bricks not connected to the foundation through alive neighbours have lost
+-- their support and must fall. Openings are holes, pillars keep the frame up.
+function M.detached_bricks(castle)
+	local function key(r, c) return r * 100 + c end
+	local alive = {}
+	for _, b in ipairs(castle.bricks) do
+		if b.alive then alive[key(b.row, b.col)] = b end
+	end
+	local visited = {}
+	local queue = {}
+	for _, b in ipairs(castle.bricks) do
+		if b.alive and b.row == 0 then
+			local k = key(b.row, b.col)
+			visited[k] = true
+			table.insert(queue, b)
+		end
+	end
+	local dirs = { { 1, 0 }, { -1, 0 }, { 0, 1 }, { 0, -1 } }
+	local head = 1
+	while head <= #queue do
+		local b = queue[head]
+		head = head + 1
+		for _, d in ipairs(dirs) do
+			local k = key(b.row + d[1], b.col + d[2])
+			local nb = alive[k]
+			if nb and not visited[k] then
+				visited[k] = true
+				table.insert(queue, nb)
+			end
+		end
+	end
+	local out = {}
+	for _, b in ipairs(castle.bricks) do
+		if b.alive and not visited[key(b.row, b.col)] then
+			table.insert(out, b)
+		end
+	end
+	return out
 end
 
 -- One fall step per column: the unsupported room and everything above it

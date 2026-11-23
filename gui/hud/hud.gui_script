@@ -106,6 +106,15 @@ function init(self)
 		self.dmg_nodes[i] = n
 	end
 
+	-- comic impact words
+	self.words = {}
+	self.word_index = 0
+	for i = 1, 5 do
+		local n = label("title", "", 0, 0, GOLD, 0.7)
+		gui.set_enabled(n, false)
+		self.words[i] = n
+	end
+
 	-- pause overlay
 	local pause_dim = box(640, 360, 1280, 720, DIM)
 	local pause_title = label("title", i18n.t("paused"), 640, 400, WHITE)
@@ -221,6 +230,25 @@ function on_message(self, message_id, message, sender)
 		gui.set_enabled(n, true)
 		gui.animate(n, "position", vmath.vector3(sx, sy + 48, 0), gui.EASING_OUTQUAD, 0.75)
 		gui.animate(n, "color", vmath.vector4(1, 0.9, 0.8, 0), gui.EASING_OUTQUAD, 0.75, 0, function(_, node)
+			gui.set_enabled(node, false)
+		end, gui.PLAYBACK_ONCE_FORWARD)
+
+	elseif message_id == hash("show_word") then
+		local sx, sy = camera.world_to_screen(message.x or 640, message.y or 360)
+		self.word_index = (self.word_index % #self.words) + 1
+		local n = self.words[self.word_index]
+		pcall(gui.cancel_animation, n, "position")
+		pcall(gui.cancel_animation, n, "color")
+		pcall(gui.cancel_animation, n, "scale")
+		gui.set_text(n, message.word or "BOOM!")
+		gui.set_position(n, vmath.vector3(sx, sy, 0))
+		gui.set_rotation(n, vmath.quat_rotation_z(math.rad(-10 + math.random() * 20)))
+		gui.set_scale(n, vmath.vector3(0.55, 0.55, 1))
+		gui.set_color(n, vmath.vector4(1, 0.92, 0.35, 1))
+		gui.set_enabled(n, true)
+		gui.animate(n, "scale", vmath.vector3(1.05, 1.05, 1), gui.EASING_OUTBACK, 0.22)
+		gui.animate(n, "position", vmath.vector3(sx, sy + 56, 0), gui.EASING_OUTQUAD, 0.75)
+		gui.animate(n, "color", vmath.vector4(1, 0.75, 0.2, 0), gui.EASING_OUTQUAD, 0.75, 0, function(_, node)
 			gui.set_enabled(node, false)
 		end, gui.PLAYBACK_ONCE_FORWARD)
 

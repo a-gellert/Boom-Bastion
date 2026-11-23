@@ -166,7 +166,7 @@ function M.build_pools(self)
 		disable_go(id)
 		b.proj_slots[i] = { id = id, url = url, active = false }
 	end
-	for i = 1, 90 do
+	for i = 1, 140 do
 		local id = factory.create("#sprite_factory", vmath.vector3(0, 0, Z.fx))
 		local url = url_of(id)
 		sprite.play_flipbook(url, hash("fx_smoke"))
@@ -247,6 +247,7 @@ function M.start_battle(self)
 	b.aim = nil
 	b.time = 0
 	b.resolve_timer = 0
+	b.slowmo = 0
 	camera.set_zoom(1.0)
 	M.hide_aim_line(self)
 	M.hide_preview(self)
@@ -492,6 +493,9 @@ function M.damage_unit(self, unit, amount, x, y)
 	sprite.play_flipbook(unit.eyes_url, hash("eyes_scared"))
 	if unit.hp <= 0 then
 		M.kill_unit(self, unit)
+		if Castle.all_units_dead(self.battle.enemy) or Castle.all_units_dead(self.battle.player) then
+			self.battle.slowmo = 0.65
+		end
 	end
 end
 
@@ -764,20 +768,24 @@ function M.detonate(self, p, x, y, brick, unit)
 	p.slot.active = false
 	disable_go(p.slot.id)
 	audio.play_explosion(p.blast)
-	camera.shake(math.min(16, p.blast * 0.22), 0.32)
-	camera.punch_zoom(0.02)
-	self.battle.hitstop = constants.HITSTOP
-	M.spawn_fx(self, "fx_burst", x, y, Z.fx, p.blast * 1.7, p.blast * 1.7, WHITE, 0, 0, 0, 0.32, 0, 1.6, 0)
-	M.spawn_fx(self, "fx_ring", x, y, Z.fx + 0.001, p.blast * 1.4, p.blast * 1.4, vmath.vector4(1, 0.9, 0.7, 0.8), 0, 0, 0, 0.3, 0, 2.2, 0)
-	for i = 1, 3 do
-		M.spawn_fx(self, "fx_smoke", x + (math.random() - 0.5) * 30, y + (math.random() - 0.5) * 24,
-			Z.fx, 34 + math.random() * 20, 34 + math.random() * 20,
-			vmath.vector4(1, 1, 1, 0.6), (math.random() - 0.5) * 40, 20 + math.random() * 30,
-			-0.15, 0.7 + math.random() * 0.3, 0, 2.1, 0)
+	camera.shake(math.min(22, p.blast * 0.32), 0.4)
+	camera.punch_zoom(0.035)
+	self.battle.hitstop = math.max(self.battle.hitstop, 0.07)
+	M.spawn_fx(self, "fx_burst", x, y, Z.fx, p.blast * 1.9, p.blast * 1.9, WHITE, 0, 0, 0, 0.34, 0, 1.7, 0)
+	M.spawn_fx(self, "fx_ring", x, y, Z.fx + 0.001, p.blast * 1.5, p.blast * 1.5, vmath.vector4(1, 0.9, 0.7, 0.85), 0, 0, 0, 0.32, 0, 2.4, 0)
+	for i = 1, 5 do
+		M.spawn_fx(self, "fx_smoke", x + (math.random() - 0.5) * 46, y + (math.random() - 0.5) * 34,
+			Z.fx, 40 + math.random() * 30, 40 + math.random() * 30,
+			vmath.vector4(1, 1, 1, 0.65), (math.random() - 0.5) * 70, 24 + math.random() * 45,
+			-0.15, 0.8 + math.random() * 0.4, 0, 2.2, 0)
 	end
-	for i = 1, 4 do
-		M.spawn_fx(self, "fx_spark", x, y, Z.fx, 14, 14, WHITE,
-			(math.random() - 0.5) * 320, (math.random() - 0.5) * 320, 0.9, 0.35, 0, 1, 0)
+	if y < 280 then
+		M.spawn_fx(self, "fx_dust", x, constants.GROUND_Y + 8, Z.fx, 120, 46,
+			vmath.vector4(1, 1, 1, 0.6), 0, 40, -0.1, 0.9, 0, 2.4, 0.4)
+	end
+	for i = 1, 6 do
+		M.spawn_fx(self, "fx_spark", x, y, Z.fx, 12 + math.random() * 8, 12 + math.random() * 8, WHITE,
+			(math.random() - 0.5) * 420, (math.random() - 0.5) * 380, 0.9, 0.4, 0, 1, 0)
 	end
 
 	-- brick damage on both castles (self-damage included)
@@ -793,6 +801,11 @@ function M.detonate(self, p, x, y, brick, unit)
 		for _, b in ipairs(castle.bricks) do
 			if b.alive then M.update_brick_visual(b) end
 		end
+	end
+	M.apply_hit_flash(self, x, y, p.blast)
+	M.apply_structural_falls(self)
+	if p.blast >= 48 then
+		msg.post("/gui_hud#gui", "show_word", { x = x, y = y + 42, word = i18n.t("comic_boom") })
 	end
 
 	-- unit damage
@@ -822,11 +835,73 @@ function M.destroy_brick(self, brick)
 	if brick.id then
 		disable_go(brick.id)
 	end
+	-- the brick itself flies off as a big chunk
+	local chunk_anim = Castle.brick_anim(brick.kind, 1)
+	M.spawn_fx(self, chunk_anim, brick.wx, brick.wy, Z.fx + 0.002,
+		constants.CELL_W + 1, constants.CELL_H + 1, WHITE,
+		(math.random() - 0.5) * 180, 40 + math.random() * 90,
+		1.0, 1.8, (math.random() - 0.5) * 320, 1, 0.2, true)
 	local shard = "fx_shard_" .. (brick.kind or "stone")
-	M.spawn_fx(self, shard, brick.wx, brick.wy, Z.fx,
-		14, 14, WHITE,
-		(math.random() - 0.5) * 140, 60 + math.random() * 80,
-		1.0, 0.9, (math.random() - 0.5) * 720, 1, 0.8)
+	for i = 1, 2 do
+		local size = 11 + math.random() * 7
+		M.spawn_fx(self, shard,
+			brick.wx + (math.random() - 0.5) * 16,
+			brick.wy + (math.random() - 0.5) * 12,
+			Z.fx + 0.001,
+			size, size, WHITE,
+			(math.random() - 0.5) * 220,
+			50 + math.random() * 120,
+			1.0, 0.9 + math.random() * 0.6,
+			(math.random() - 0.5) * 900, 1, 0.6, true)
+	end
+	M.spawn_fx(self, "fx_smoke", brick.wx, brick.wy, Z.fx, 30, 28,
+		vmath.vector4(1, 1, 1, 0.6), 0, 34, -0.05, 0.65, 0, 2.2, 0.2)
+end
+
+-- A brick that lost its path to the foundation falls as a physical chunk.
+function M.drop_brick(self, brick)
+	if not brick.alive then return end
+	brick.alive = false
+	if brick.id then disable_go(brick.id) end
+	local anim = Castle.brick_anim(brick.kind, wall.state(brick))
+	M.spawn_fx(self, anim, brick.wx, brick.wy, Z.fx + 0.002,
+		constants.CELL_W + 1, constants.CELL_H + 1, WHITE,
+		(math.random() - 0.5) * 140,
+		20 + math.random() * 70,
+		1.0, 2.4,
+		(math.random() - 0.5) * 260,
+		1, 0.1, true)
+end
+
+function M.apply_structural_falls(self)
+	local b = self.battle
+	local total = 0
+	for _, castle in ipairs({ b.player, b.enemy }) do
+		local detached = Castle.detached_bricks(castle)
+		for _, br in ipairs(detached) do
+			M.drop_brick(self, br)
+			total = total + 1
+		end
+	end
+	if total > 0 then
+		camera.shake(math.min(16, 6 + total), 0.32)
+		b.hitstop = math.max(b.hitstop, 0.02)
+		audio.play("bounce", { speed = 1.1, gain = 0.8, vary = 0.1 })
+	end
+end
+
+function M.apply_hit_flash(self, x, y, radius)
+	for _, castle in ipairs({ self.battle.player, self.battle.enemy }) do
+		for _, br in ipairs(castle.bricks) do
+			if br.alive and br.url then
+				local dx, dy = br.wx - x, br.wy - y
+				if dx * dx + dy * dy < (radius + 20) * (radius + 20) then
+					br.flash = 0.07
+					go.set(br.url, "tint", vmath.vector4(1.8, 1.8, 1.8, 1))
+				end
+			end
+		end
+	end
 end
 
 function M.update_brick_visual(brick)
@@ -835,7 +910,7 @@ function M.update_brick_visual(brick)
 end
 
 -- ------------------------------------------------------------------ FX
-function M.spawn_fx(self, anim, x, y, z, w, h, tint, vx, vy, grav, life, spin, grow, drag)
+function M.spawn_fx(self, anim, x, y, z, w, h, tint, vx, vy, grav, life, spin, grow, drag, bounce)
 	local slot = nil
 	for _, s in ipairs(self.battle.fx) do
 		if not s.active then slot = s break end
@@ -857,6 +932,9 @@ function M.spawn_fx(self, anim, x, y, z, w, h, tint, vx, vy, grav, life, spin, g
 	slot.drag = drag or 0
 	slot.tint = tint or WHITE
 	slot.w, slot.h = w or 30, h or 30
+	slot.bounce = bounce or false
+	slot.bounces = 0
+	slot.resting = false
 end
 
 function M.update_fx(self, dt)
@@ -867,13 +945,29 @@ function M.update_fx(self, dt)
 				f.active = false
 				disable_go(f.id)
 			else
-				f.vy = f.vy - f.grav * constants.GRAVITY * dt
-				if f.drag > 0 then
-					local k = math.max(0, 1 - f.drag * dt)
-					f.vx, f.vy = f.vx * k, f.vy * k
+				if not f.resting then
+					f.vy = f.vy - f.grav * constants.GRAVITY * dt
+					if f.drag > 0 then
+						local k = math.max(0, 1 - f.drag * dt)
+						f.vx, f.vy = f.vx * k, f.vy * k
+					end
+					f.x = f.x + f.vx * dt
+					f.y = f.y + f.vy * dt
+					if f.bounce then
+						local ground = constants.GROUND_Y + (f.h or 20) * 0.28
+						if f.y <= ground and f.vy < 0 then
+							f.y = ground
+							f.bounces = (f.bounces or 0) + 1
+							f.vy = -f.vy * 0.42
+							f.vx = f.vx * 0.65
+							f.spin = f.spin * 0.55
+							if f.bounces >= 3 or math.abs(f.vy) < 45 then
+								f.resting = true
+								f.vx, f.vy, f.spin = 0, 0, 0
+							end
+						end
+					end
 				end
-				f.x = f.x + f.vx * dt
-				f.y = f.y + f.vy * dt
 				f.rot = f.rot + f.spin * dt
 				go.set_position(vmath.vector3(f.x, f.y, f.z), f.id)
 				go.set_rotation(vmath.quat_rotation_z(math.rad(f.rot)), f.id)
@@ -1046,7 +1140,7 @@ function M.on_input(self, action_id, action)
 		return true
 	end
 	if action_id == hash("debug_a") and action.pressed then
-		M.debug_blast(self, b.enemy.ax - 104, constants.CASTLE_BOTTOM + 4 * constants.CELL_H, 62, 220)
+		M.debug_blast(self, b.enemy.ax - 104, constants.CASTLE_BOTTOM + 4 * constants.CELL_H, 42, 130)
 		return true
 	end
 	if action_id == hash("touch") then
@@ -1088,7 +1182,7 @@ end
 
 -- ------------------------------------------------------------------ collapse
 function M.start_room_fall(self, room, dy)
-	local fall = { room = room, t = 0, dur = 0.26, dy = dy, bricks = {}, unit = nil }
+	local fall = { room = room, t = 0, dur = 0.34, dy = dy, bricks = {}, unit = nil }
 	for _, brick in ipairs(room.bricks) do
 		if brick.alive then
 			table.insert(fall.bricks, { brick = brick, from_y = brick.wy - dy })
@@ -1126,6 +1220,20 @@ function M.update_falls(self, dt)
 				go.set_position(vmath.vector3(item.brick.wx, item.brick.wy, item.brick.z or Z.brick), item.brick.id)
 			end
 			if f.unit then M.place_unit_at(f.unit.unit, f.unit.unit.y) end
+			-- landing impact: dust, shards, shake
+			M.spawn_fx(self, "fx_dust", room.ux, room.uy - 40, Z.fx, 120, 48,
+				vmath.vector4(1, 1, 1, 0.7), 0, 44, -0.1, 0.9, 0, 2.4, 0.5)
+			for i = 1, 5 do
+				M.spawn_fx(self, "fx_shard_stone",
+					room.ux + (math.random() - 0.5) * 100,
+					room.uy - 30,
+					Z.fx + 0.001,
+					10 + math.random() * 8, 10 + math.random() * 8, WHITE,
+					(math.random() - 0.5) * 200, 70 + math.random() * 120,
+					1.0, 1.1, (math.random() - 0.5) * 700, 1, 0.5, true)
+			end
+			camera.shake(9, 0.28)
+			audio.play("bounce", { speed = 0.7, gain = 0.9, vary = 0.1 })
 			room.fall = nil
 			table.remove(b.falls, i)
 		end
@@ -1198,9 +1306,10 @@ function M.collapse(self)
 				Castle.shift_room(room, dy)
 				if room.decor.balcony_y then room.decor.balcony_y = room.decor.balcony_y + dy end
 				M.start_room_fall(self, room, dy)
-				M.spawn_fx(self, "fx_dust", room.ux, room.uy - 30, Z.fx, 80, 40,
-					vmath.vector4(1, 1, 1, 0.6), 0, 30, -0.1, 0.8, 0, 2.2, 0.5)
-				camera.shake(10, 0.3)
+				M.spawn_fx(self, "fx_dust", room.ux, room.uy - 30, Z.fx, 100, 46,
+					vmath.vector4(1, 1, 1, 0.65), 0, 34, -0.1, 0.9, 0, 2.3, 0.5)
+				camera.shake(16, 0.4)
+				b.hitstop = math.max(b.hitstop, 0.05)
 				audio.play("bounce", { speed = 0.55, gain = 1.0 })
 			end
 		end
@@ -1220,6 +1329,9 @@ function M.debug_blast(self, x, y, radius, damage)
 	M.spawn_fx(self, "fx_smoke", x, y - 20, Z.fx, 80, 50, vmath.vector4(1, 1, 1, 0.7), 0, 30, -0.1, 0.8, 0, 2, 0.4)
 	camera.shake(16, 0.4)
 	audio.play_explosion(radius)
+	msg.post("/gui_hud#gui", "show_word", { x = x, y = y + 60, word = i18n.t("comic_boom") })
+	M.apply_hit_flash(self, x, y, radius)
+	M.apply_structural_falls(self)
 	M.collapse(self)
 end
 
@@ -1358,6 +1470,10 @@ end
 function M.update(self, dt)
 	local b = self.battle
 	if b.paused then return end
+	if b.slowmo and b.slowmo > 0 then
+		b.slowmo = math.max(0, b.slowmo - dt)
+		dt = dt * 0.3
+	end
 	b.time = b.time + dt
 	if b.hitstop > 0 then
 		b.hitstop = math.max(0, b.hitstop - dt)
@@ -1384,6 +1500,21 @@ function M.update(self, dt)
 					u.eyes_timer = u.eyes_timer - dt
 					if u.eyes_timer <= 0 and u.alive then
 						sprite.play_flipbook(u.eyes_url, hash("eyes_idle"))
+					end
+				end
+			end
+		end
+	end
+
+	-- brick hit flashes
+	for _, castle in ipairs({ b.player, b.enemy }) do
+		for _, br in ipairs(castle.bricks) do
+			if br.flash and br.flash > 0 then
+				br.flash = br.flash - dt
+				if br.flash <= 0 then
+					br.flash = nil
+					if br.url and br.alive then
+						go.set(br.url, "tint", WHITE)
 					end
 				end
 			end
@@ -1417,6 +1548,7 @@ function M.init(self)
 		turn = "player",
 		selected = 1,
 		hitstop = 0,
+		slowmo = 0,
 		time = 0,
 	}
 	M.build_arena(self)
@@ -1437,6 +1569,9 @@ function M.on_message(self, message_id, message, sender)
 end
 
 return M
+
+
+
 
 
 
