@@ -1,18 +1,21 @@
 -- gui/hud/hud.gui_script
--- Battle HUD: turn banner, unit buttons (with input), damage numbers, pause and result.
+-- Battle HUD: turn banner, unit buttons, damage numbers, perks, meta and pause/result.
 
 local i18n = require("lua_modules.i18n")
 local audio = require("lua_modules.audio")
 local camera = require("lua_modules.camera_controller")
+local progress = require("lua_modules.progress")
 
 local WHITE = vmath.vector4(1, 1, 1, 1)
 local GOLD = vmath.vector4(0.98, 0.76, 0.22, 1)
 local CREAM = vmath.vector4(0.98, 0.94, 0.85, 1)
 local SOFT = vmath.vector4(0.90, 0.94, 1.0, 0.95)
 local DIM = vmath.vector4(0.03, 0.05, 0.10, 0.66)
+local DARK = vmath.vector4(0.12, 0.16, 0.24, 1)
 
 local UNIT_SLOTS = { "bombardier", "triplet", "driller", "sniper" }
 local UNIT_LABELS = { "BOMB", "TRIPLE", "DRILL", "SNIPER" }
+local META_KEYS = { "fortify", "power", "vitality" }
 
 local function box(x, y, w, h, color, image)
 	local node = gui.new_box_node(vmath.vector3(x, y, 0), vmath.vector3(w, h, 0))
@@ -48,17 +51,28 @@ local function set_enabled_all(nodes, enabled)
 	end
 end
 
+-- ------------------------------------------------------------------ init
 function init(self)
 	msg.post(".", "acquire_input_focus")
+	i18n.detect_language()
+	progress.load()
 	self.paused = false
 	self.result_open = false
+	self.perks_open = false
+	self.meta_open = false
+	self.can_select = false
+	self.hotseat = false
+	self.side = "player"
 	self.banner_seq = 0
+	self.gold = progress.gold()
 
-	-- coins / 2P / pause
-	local pill = icon("ui_pill", 92, 686, 124, 46)
+	-- coins / level / 2P / pause
+	local pill = icon("ui_pill", 100, 686, 132, 46)
 	slice9(pill, 14)
-	icon("ui_coin", 48, 686, 30, 30)
-	self.coins = label("body", "0", 92, 686, CREAM)
+	icon("ui_coin", 52, 686, 30, 30)
+	self.coins = label("body", tostring(self.gold), 108, 686, CREAM)
+
+	self.level_label = label("body", "", 320, 686, CREAM, 0.68)
 
 	self.p2_btn = icon("ui_pill", 1150, 686, 82, 46)
 	slice9(self.p2_btn, 14)
@@ -68,7 +82,7 @@ function init(self)
 	slice9(self.pause_btn, 14)
 	icon("ui_pause", 1232, 686, 30, 30)
 
-	-- keep names (follow the camera so the aim zoom keeps them on the castles)
+	-- keep names
 	self.keep_blue = label("label", i18n.t("keep_blue"), 176, 660, CREAM, 0.62)
 	self.keep_red = label("label", i18n.t("keep_red"), 1104, 660, CREAM, 0.62)
 
@@ -79,9 +93,7 @@ function init(self)
 	gui.set_enabled(self.banner, false)
 	gui.set_enabled(self.banner_text, false)
 
-	-- hint
 	self.hint = label("body", i18n.t("hint_aim"), 640, 128, SOFT)
-	self.level_label = label("body", "", 300, 686, CREAM, 0.7)
 
 	-- unit buttons
 	self.unit_bg = {}
@@ -109,7 +121,7 @@ function init(self)
 		self.dmg_nodes[i] = n
 	end
 
-	-- comic impact words
+	-- comic words
 	self.words = {}
 	self.word_index = 0
 	for i = 1, 5 do
@@ -120,24 +132,89 @@ function init(self)
 
 	-- pause overlay
 	local pause_dim = box(640, 360, 1280, 720, DIM)
-	local pause_title = label("title", i18n.t("paused"), 640, 400, WHITE)
-	local pause_hint = label("label", i18n.t("resume_hint"), 640, 320, GOLD)
-	self.pause_nodes = { pause_dim, pause_title, pause_hint }
+	local pause_title = label("title", i18n.t("paused"), 640, 430, WHITE)
+	local pause_hint = label("label", i18n.t("resume_hint"), 640, 355, GOLD)
+	self.pause_meta_btn = icon("ui_btn_gold", 640, 270, 250, 70)
+	slice9(self.pause_meta_btn, 14)
+	local pause_meta_txt = label("label", i18n.t("meta_title"), 640, 270, WHITE, 0.8)
+	self.pause_nodes = { pause_dim, pause_title, pause_hint, self.pause_meta_btn, pause_meta_txt }
 	set_enabled_all(self.pause_nodes, false)
 
 	-- result overlay
 	local res_dim = box(640, 360, 1280, 720, DIM)
-	self.result_title = label("title", "", 640, 440, GOLD)
-	self.retry_btn = icon("ui_btn_gold", 640, 320, 280, 92)
+	self.result_title = label("title", "", 640, 470, GOLD)
+	self.retry_btn = icon("ui_btn_gold", 640, 340, 300, 90)
 	slice9(self.retry_btn, 14)
-	self.result_btn_text = label("label", i18n.t("retry"), 640, 320, WHITE, 0.9)
-	self.result_nodes = { res_dim, self.result_title, self.retry_btn, self.result_btn_text }
+	self.result_btn_text = label("label", i18n.t("retry"), 640, 340, WHITE, 0.9)
+	self.result_meta_btn = icon("ui_btn_dark", 640, 235, 240, 66)
+	slice9(self.result_meta_btn, 14)
+	local result_meta_txt = label("label", i18n.t("meta_title"), 640, 235, WHITE, 0.78)
+	self.result_nodes = { res_dim, self.result_title, self.retry_btn, self.result_btn_text, self.result_meta_btn, result_meta_txt }
 	set_enabled_all(self.result_nodes, false)
 	self.result_win = false
+
+	-- perk cards
+	local perk_dim = box(640, 360, 1280, 720, DIM)
+	local perk_title = label("title", i18n.t("perks_title"), 640, 615, GOLD)
+	self.perk_cards = {}
+	self.perk_card_bg = {}
+	self.perk_card_name = {}
+	self.perk_card_desc = {}
+	local card_nodes = { perk_dim, perk_title }
+	for i = 1, 3 do
+		local x = 380 + (i - 1) * 260
+		local bg = icon("ui_card", x, 340, 240, 330)
+		local name = label("label", "", x, 462, WHITE, 0.5)
+		gui.set_line_break(name, true)
+		gui.set_size(name, vmath.vector3(210, 84, 0))
+		local desc = label("body", "", x, 340, CREAM, 0.58)
+		gui.set_line_break(desc, true)
+		gui.set_size(desc, vmath.vector3(200, 190, 0))
+		self.perk_card_bg[i] = bg
+		self.perk_card_name[i] = name
+		self.perk_card_desc[i] = desc
+		table.insert(card_nodes, bg)
+		table.insert(card_nodes, name)
+		table.insert(card_nodes, desc)
+	end
+	self.perk_nodes = card_nodes
+	set_enabled_all(self.perk_nodes, false)
+
+	-- meta panel
+	local meta_dim = box(640, 360, 1280, 720, DIM)
+	local meta_panel = icon("ui_panel", 640, 360, 800, 500)
+	slice9(meta_panel, 18)
+	local meta_title = label("title", i18n.t("meta_title"), 640, 560, GOLD)
+	self.meta_gold = label("label", i18n.t("meta_gold") .. ": " .. tostring(self.gold), 640, 505, CREAM, 0.75)
+	local meta_nodes = { meta_dim, meta_panel, meta_title, self.meta_gold }
+	self.meta_rows = {}
+	for i, key in ipairs(META_KEYS) do
+		local y = 420 - (i - 1) * 100
+		local name_key = (key == "fortify") and "meta_fortify" or ((key == "power") and "meta_power" or "meta_vitality")
+		local name = label("body", i18n.t(name_key), 430, y, WHITE, 0.66)
+		local lvl = label("body", "", 660, y, CREAM, 0.62)
+		local cost = label("body", "", 780, y, GOLD, 0.62)
+		local btn = icon("ui_btn_gold", 910, y, 110, 58)
+		slice9(btn, 14)
+		local btn_txt = label("label", i18n.t("meta_buy"), 910, y, WHITE, 0.62)
+		self.meta_rows[i] = { key = key, name = name, lvl = lvl, cost = cost, btn = btn, btn_txt = btn_txt }
+		for _, n in ipairs({ name, lvl, cost, btn, btn_txt }) do table.insert(meta_nodes, n) end
+	end
+	self.meta_close_btn = icon("ui_btn_dark", 640, 160, 200, 62)
+	slice9(self.meta_close_btn, 14)
+	self.meta_close_txt = label("label", i18n.t("meta_close"), 640, 160, WHITE, 0.8)
+	table.insert(meta_nodes, self.meta_close_btn)
+	table.insert(meta_nodes, self.meta_close_txt)
+	self.meta_nodes = meta_nodes
+	set_enabled_all(self.meta_nodes, false)
 end
 
 -- ------------------------------------------------------------------ input
 function update(self, dt)
+	if not self.focus_acquired then
+		self.focus_acquired = true
+		msg.post(".", "acquire_input_focus")
+	end
 	if self.keep_blue then
 		local bx, by = camera.world_to_screen(176, 660)
 		gui.set_position(self.keep_blue, vmath.vector3(bx, by, 0))
@@ -146,23 +223,107 @@ function update(self, dt)
 	end
 end
 
+local function buy_meta(self, row)
+	if progress.level(row.key) >= 10 then
+		return
+	end
+	if progress.buy(row.key) then
+		audio.play("coins")
+		self.gold = progress.gold()
+		gui.set_text(self.coins, tostring(self.gold))
+		gui.set_text(self.meta_gold, i18n.t("meta_gold") .. ": " .. tostring(self.gold))
+		gui.set_text(row.lvl, i18n.t("meta_lv", { n = progress.level(row.key) }))
+		local maxed = progress.level(row.key) >= 10
+		gui.set_text(row.cost, maxed and "MAX" or tostring(progress.cost(row.key)))
+		gui.set_color(row.cost, maxed and SOFT or GOLD)
+	end
+end
+
+local function open_meta(self)
+	self.meta_open = true
+	self.gold = progress.gold()
+	gui.set_text(self.meta_gold, i18n.t("meta_gold") .. ": " .. tostring(self.gold))
+	for _, row in ipairs(self.meta_rows) do
+		local lvl = progress.level(row.key)
+		gui.set_text(row.lvl, i18n.t("meta_lv", { n = lvl }))
+		gui.set_text(row.cost, lvl >= 10 and "MAX" or tostring(progress.cost(row.key)))
+		gui.set_color(row.cost, lvl >= 10 and SOFT or GOLD)
+	end
+	set_enabled_all(self.meta_nodes, true)
+end
+
+local function close_meta(self)
+	self.meta_open = false
+	set_enabled_all(self.meta_nodes, false)
+end
+
+local function close_perks(self)
+	self.perks_open = false
+	set_enabled_all(self.perk_nodes, false)
+end
+
 function on_input(self, action_id, action)
 	if action_id ~= hash("touch") or not action.pressed then
+		return false
+	end
+	if self.meta_open then
+		for _, row in ipairs(self.meta_rows) do
+			if gui.pick_node(row.btn, action.x, action.y) then
+				buy_meta(self, row)
+				return true
+			end
+		end
+		if gui.pick_node(self.meta_close_btn, action.x, action.y) then
+			audio.play_click()
+			close_meta(self)
+			return true
+		end
+		return false
+	end
+	if self.perks_open then
+		for i, bg in ipairs(self.perk_card_bg) do
+			if gui.pick_node(bg, action.x, action.y) then
+				audio.play_click()
+				close_perks(self)
+				msg.post("/main#main", "pick_perk", { index = i })
+				return true
+			end
+		end
 		return false
 	end
 	if self.result_open then
 		if gui.pick_node(self.retry_btn, action.x, action.y) then
 			audio.play_click()
-			msg.post("/main#main", self.result_win and "next_battle" or "restart_battle")
+			msg.post("/main#main", "restart_battle")
+			return true
+		end
+		if gui.pick_node(self.result_meta_btn, action.x, action.y) then
+			audio.play_click()
+			open_meta(self)
 			return true
 		end
 		return false
 	end
-	for i, bg in ipairs(self.unit_bg) do
-		if gui.pick_node(bg, action.x, action.y) then
+	if self.paused then
+		if gui.pick_node(self.pause_meta_btn, action.x, action.y) then
 			audio.play_click()
-			msg.post("/main#main", "select_unit", { index = i })
+			open_meta(self)
 			return true
+		end
+		if gui.pick_node(self.pause_btn, action.x, action.y) then
+			audio.play_click()
+			msg.post("/main#main", "toggle_pause")
+			return true
+		end
+		return false
+	end
+	if self.can_select then
+		for i, bg in ipairs(self.unit_bg) do
+			if gui.pick_node(bg, action.x, action.y) then
+				audio.play_click()
+				msg.post("/main#main", "select_unit", { index = i })
+				return true
+			end
 		end
 	end
 	if gui.pick_node(self.pause_btn, action.x, action.y) then
@@ -171,6 +332,8 @@ function on_input(self, action_id, action)
 		return true
 	end
 	if gui.pick_node(self.p2_btn, action.x, action.y) then
+		audio.play_click()
+		msg.post("/main#main", "toggle_hotseat")
 		return true
 	end
 	return false
@@ -180,6 +343,10 @@ end
 function on_message(self, message_id, message, sender)
 	if message_id == hash("hud_state") then
 		local units = message.units or {}
+		self.can_select = (message.state == "aim")
+		self.hotseat = message.hotseat and true or false
+		self.side = message.side or "player"
+		gui.set_color(self.p2_btn, self.hotseat and GOLD or WHITE)
 		for i, row in ipairs(units) do
 			local bg = self.unit_bg[i]
 			if bg then
@@ -201,14 +368,22 @@ function on_message(self, message_id, message, sender)
 				gui.set_scale(self.unit_portrait[i], vmath.vector3(s, s, 1))
 			end
 		end
-		if message.state == "over" then
+		for i = #units + 1, 4 do
+			gui.set_color(self.unit_bg[i], vmath.vector4(1, 1, 1, 0.12))
+			gui.set_color(self.unit_portrait[i], vmath.vector4(1, 1, 1, 0.12))
+			gui.set_color(self.unit_labels[i], vmath.vector4(1, 1, 1, 0.12))
+			gui.set_text(self.unit_labels[i], "")
+		end
+		if message.state == "over" or message.state == "perk" then
 			gui.set_text(self.hint, "")
-		elseif message.state == "flying" or message.state == "resolve" or message.state == "settle" or message.state == "intro" then
-			gui.set_text(self.hint, "")
-		elseif message.turn == "enemy" then
+		elseif message.state == "enemy" then
 			gui.set_text(self.hint, i18n.t("hint_enemy"))
-		else
+		elseif message.hotseat and message.side == "enemy" then
+			gui.set_text(self.hint, i18n.t("p2_turn") .. " · " .. i18n.t("hint_aim"))
+		elseif message.state == "aim" then
 			gui.set_text(self.hint, i18n.t("hint_aim"))
+		else
+			gui.set_text(self.hint, "")
 		end
 		if message.level_id then
 			gui.set_text(self.level_label, "LEVEL " .. tostring(message.level_id) .. " · " .. tostring(message.level_name or ""))
@@ -266,16 +441,39 @@ function on_message(self, message_id, message, sender)
 			gui.set_enabled(node, false)
 		end, gui.PLAYBACK_ONCE_FORWARD)
 
+	elseif message_id == hash("show_perks") then
+		local offers = message.offers or {}
+		for i = 1, 3 do
+			local o = offers[i]
+			gui.set_text(self.perk_card_name[i], o and o.name or "")
+			gui.set_text(self.perk_card_desc[i], o and o.desc or "")
+		end
+		self.perks_open = true
+		set_enabled_all(self.perk_nodes, true)
+
+	elseif message_id == hash("hud_gold") then
+		self.gold = message.gold or progress.gold()
+		gui.set_text(self.coins, tostring(self.gold))
+
 	elseif message_id == hash("battle_over") then
 		self.result_open = true
 		self.result_win = message.win and true or false
-		gui.set_text(self.result_title, message.win and i18n.t("victory") or i18n.t("defeat"))
-		gui.set_color(self.result_title, message.win and GOLD or vmath.vector4(1, 0.45, 0.4, 1))
-		gui.set_text(self.result_btn_text, self.result_win and i18n.t("next") or i18n.t("retry"))
+		local title = i18n.t("defeat")
+		if message.complete then
+			title = i18n.t("campaign_complete")
+		elseif message.hotseat then
+			title = (message.winner == "player") and i18n.t("p1_wins") or i18n.t("p2_wins")
+		elseif message.win then
+			title = i18n.t("victory")
+		end
+		gui.set_text(self.result_title, title)
+		gui.set_color(self.result_title, (message.win or message.complete) and GOLD or vmath.vector4(1, 0.45, 0.4, 1))
+		gui.set_text(self.result_btn_text, i18n.t("retry"))
 		set_enabled_all(self.result_nodes, true)
 
 	elseif message_id == hash("battle_restart") then
 		self.result_open = false
+		close_perks(self)
 		set_enabled_all(self.result_nodes, false)
 
 	elseif message_id == hash("pause_changed") then

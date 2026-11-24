@@ -9,6 +9,8 @@ local i18n = require("lua_modules.i18n")
 local units_db = require("lua_modules.units_db")
 local levels_db = require("lua_modules.levels_db")
 local biomes_db = require("lua_modules.biomes_db")
+local perks_db = require("lua_modules.perks_db")
+local progress = require("lua_modules.progress")
 local Castle = require("lua_modules.castle")
 local wall = require("lua_modules.segmented_wall")
 local ballistics = require("lua_modules.ballistics")
@@ -303,7 +305,9 @@ function M.start_battle(self, level_index)
 	b.state = "intro"
 	b.timer = 1.25
 	b.turn = "player"
+	b.active_side = "player"
 	b.selected = 1
+	b.selected_enemy = 1
 	b.winner = nil
 	b.paused = false
 	b.hitstop = 0
@@ -331,12 +335,31 @@ function M.start_battle(self, level_index)
 	end
 	M.apply_biome(self, level.biome)
 	M.spawn_hazards(self, level)
+	M.apply_run(self)
+	progress.set_best_level(level.id)
 
 	M.select_unit(self, 1, true)
 	M.update_hud(self)
 	msg.post("/gui_hud#gui", "battle_restart")
+	msg.post("/gui_hud#gui", "hud_gold", { gold = progress.gold() })
 	M.banner(self, "LEVEL " .. tostring(level.id) .. " · " .. level.name)
 	audio.music("music_battle")
+end
+
+function M.apply_run(self)
+	local b = self.battle
+	local run = b.run
+	if not run or b.hotseat_mode then return end
+	local wall_hp = run.wall_hp * progress.wall_mult()
+	local unit_hp = 100 + (run.unit_hp or 0) + progress.hp_bonus()
+	for _, br in ipairs(b.player.bricks) do
+		br.max_hp = br.max_hp * wall_hp
+		br.hp = br.max_hp
+	end
+	for _, u in ipairs(b.player.units) do
+		u.max_hp = unit_hp
+		u.hp = unit_hp
+	end
 end
 
 function M.build_castle(self, castle)
@@ -555,19 +578,24 @@ end
 
 function M.update_hud(self)
 	local b = self.battle
+	local side = b.active_side or "player"
+	local list = (side == "enemy") and b.enemy.units or b.player.units
+	local selected = (side == "enemy") and b.selected_enemy or b.selected
 	local rows = {}
-	for _, u in ipairs(b.player.units) do
+	for _, u in ipairs(list) do
 		table.insert(rows, {
 			role = u.role,
 			label = units_db.get(u.role).label,
 			alive = u.alive,
 			cooldown = u.cooldown,
-			selected = (b.player.units[b.selected] == u),
+			selected = (list[selected] == u),
 		})
 	end
 	msg.post("/gui_hud#gui", "hud_state", {
 		turn = b.turn,
-		selected = b.selected,
+		side = side,
+		hotseat = b.hotseat_mode and true or false,
+		selected = selected,
 		units = rows,
 		state = b.state,
 		level_id = b.level and b.level.id or 1,
@@ -580,17 +608,26 @@ function M.show_damage(self, x, y, amount)
 end
 
 -- ------------------------------------------------------------------ units
+function M.active_units(self)
+	local b = self.battle
+	return (b.active_side == "enemy") and b.enemy.units or b.player.units
+end
+
 function M.current_unit(self)
 	local b = self.battle
-	return b.player.units[b.selected]
+	local list = M.active_units(self)
+	local idx = (b.active_side == "enemy") and b.selected_enemy or b.selected
+	return list[idx]
 end
 
 function M.select_unit(self, index, silent)
 	local b = self.battle
-	local u = b.player.units[index]
+	local side = b.active_side or "player"
+	local list = (side == "enemy") and b.enemy.units or b.player.units
+	local u = list[index]
 	if not u or not u.alive or u.cooldown > 0 then
 		if silent then
-			for i, cand in ipairs(b.player.units) do
+			for i, cand in ipairs(list) do
 				if cand.alive and cand.cooldown == 0 then
 					return M.select_unit(self, i)
 				end
@@ -598,7 +635,7 @@ function M.select_unit(self, index, silent)
 		end
 		return false
 	end
-	b.selected = index
+	if side == "enemy" then b.selected_enemy = index else b.selected = index end
 	local ring = b.sel_ring
 	ring.active = true
 	enable_go(ring.id)
@@ -685,7 +722,8 @@ end
 function M.apply_gate(self, p, g)
 	if g.type == "x2" or g.type == "x3" then
 		p.gate_hit[g.id] = true
-		local n = (g.type == "x3") and 3 or 2
+		local x2x3 = p.team == "player" and self.battle.run and self.battle.run.x2x3
+		local n = (g.type == "x3" or (g.type == "x2" and x2x3)) and 3 or 2
 		local base = math.atan2(p.vy, p.vx)
 		local speed = ballistics.speed(p.vx, p.vy)
 		local spread = math.rad(5)
@@ -732,6 +770,10 @@ function M.spawn_projectile(self, opts)
 	local anim = opts.anim or "proj_bomb"
 	set_anim(self, slot, anim, nil, nil, WHITE)
 	local p_scale = opts.scale or constants.PROJECTILE_SCALE
+	if opts.crit then
+		p_scale = p_scale * 1.15
+		go.set(slot.url, "tint", vmath.vector4(1.25, 1.0, 0.55, 1))
+	end
 	go.set_scale(vmath.vector3(p_scale, p_scale, 1), slot.id)
 	go.set_position(vmath.vector3(opts.x, opts.y, Z.projectile), slot.id)
 	local gate_hit = {}
@@ -767,11 +809,21 @@ function M.spawn_projectile(self, opts)
 end
 
 function M.fire_projectiles(self, unit, vx, vy)
+	local b = self.battle
+	local is_player = unit.team == "player"
+	local run = is_player and (b.run or perks_db.new_run()) or perks_db.new_run()
 	local role = units_db.get(unit.role)
-	local count = role.count or 1
+	local count = (role.count or 1) + (run.extra or 0)
 	local base = math.atan2(vy, vx)
 	local speed = ballistics.speed(vx, vy)
 	local spread = math.rad(role.spread or 0)
+	local crit = math.random() < (run.crit or 0)
+	local meta_dmg = (is_player and not b.hotseat_mode) and progress.damage_mult() or 1
+	local blast = role.blast * (run.radius or 1) * (crit and 1.25 or 1)
+	local wall_dmg = role.wall * (run.wall or 1) * meta_dmg * (crit and 1.8 or 1)
+	local unit_dmg = role.unit * (run.unit or 1) * meta_dmg * (crit and 1.8 or 1)
+	local pierce = (role.pierce or 0) + (run.pierce or 0)
+	local radius = constants.PROJECTILE_RADIUS
 	for i = 1, count do
 		local angle = base
 		if count > 1 then
@@ -782,15 +834,16 @@ function M.fire_projectiles(self, unit, vx, vy)
 			vx = math.cos(angle) * speed,
 			vy = math.sin(angle) * speed,
 			gravity = constants.GRAVITY * (role.gravity or 1),
-			blast = role.blast,
-			wall = role.wall,
-			unit = role.unit,
-			pierce = role.pierce or 0,
+			blast = blast,
+			wall = wall_dmg,
+			unit = unit_dmg,
+			pierce = pierce,
 			anim = role.proj,
 			team = unit.team,
 			owner = unit,
 			heavy = role.heavy,
-			radius = 8,
+			radius = radius,
+			crit = crit,
 		})
 	end
 	audio.play("whoosh", { vary = 0.08 })
@@ -1182,6 +1235,8 @@ end
 -- ------------------------------------------------------------------ aim
 function M.collide_preview(self, x, y)
 	local b = self.battle
+	local my_team = (b.active_side == "enemy") and "enemy" or "player"
+	local my_castle = (my_team == "enemy") and b.enemy or b.player
 	if y <= constants.GROUND_Y + 2 then return true end
 	if b.hill and y <= b.hill.top and math.abs(x - b.hill.x) < b.hill.half then return true end
 	for _, hz in ipairs(b.hazards or {}) do
@@ -1190,8 +1245,8 @@ function M.collide_preview(self, x, y)
 			if dx * dx + dy * dy < (hz.r + 3) * (hz.r + 3) then return true end
 		end
 	end
-	if M.brick_at(self, x, y, 3, {}, self.battle.player) then return true end
-	if M.unit_at(self, x, y, 3, "player") then return true end
+	if M.brick_at(self, x, y, 3, {}, my_castle) then return true end
+	if M.unit_at(self, x, y, 3, my_team) then return true end
 	for _, castle in ipairs({ self.battle.player, self.battle.enemy }) do
 		if math.abs(x - castle.ax) <= 170 and math.abs(y - 184) <= 29 then
 			return true
@@ -1324,7 +1379,7 @@ function M.release_aim(self)
 	local u = M.current_unit(self)
 	if not u or not u.alive then return end
 	M.fire_projectiles(self, u, aim.vx, aim.vy)
-	u.cooldown = 2
+	u.cooldown = (u.team == "player" and b.run and b.run.zero_cd) and 0 or 2
 	b.state = "flying"
 	M.update_hud(self)
 end
@@ -1527,7 +1582,8 @@ function M.collapse(self)
 
 				-- crush damage on the falling room
 				if room.unit and room.unit.alive then
-					M.damage_unit(self, room.unit, constants.CRUSH_DAMAGE * drop, room.ux, room.uy)
+					local crush = ((castle.team == "enemy") and b.run and b.run.crush) or 1
+					M.damage_unit(self, room.unit, constants.CRUSH_DAMAGE * drop * crush, room.ux, room.uy)
 				end
 				for _, brick in ipairs(room.bricks) do
 					if brick.alive then
@@ -1593,18 +1649,21 @@ function M.debug_blast(self, x, y, radius, damage)
 	M.collapse(self)
 end
 
-function M.first_ready(self)
-	local b = self.battle
-	for i, u in ipairs(b.player.units) do
+function M.first_ready_for(units)
+	for i, u in ipairs(units) do
 		if u.alive and u.cooldown == 0 then return i end
 	end
-	for i, u in ipairs(b.player.units) do
+	for i, u in ipairs(units) do
 		if u.alive then
 			u.cooldown = 0
 			return i
 		end
 	end
 	return nil
+end
+
+function M.first_ready(self)
+	return M.first_ready_for(self.battle.player.units)
 end
 
 function M.start_player_turn(self)
@@ -1614,24 +1673,43 @@ function M.start_player_turn(self)
 	end
 	b.state = "aim"
 	b.turn = "player"
-	local idx = M.first_ready(self)
-	if idx then
-		M.select_unit(self, idx, true)
-	else
+	b.active_side = "player"
+	local idx = M.first_ready_for(b.player.units)
+	if not idx then
 		M.finish(self, false)
 		return
 	end
-	M.banner(self, i18n.t("your_turn"))
+	M.select_unit(self, idx, true)
+	M.banner(self, i18n.t(b.hotseat_mode and "p1_turn" or "your_turn"))
 	M.update_hud(self)
 end
 
 function M.start_enemy_turn(self)
 	local b = self.battle
-	b.state = "enemy"
-	b.turn = "enemy"
-	b.timer = constants.AI_DELAY
 	camera.set_zoom(1.0)
 	M.hide_aim_line(self)
+	if b.hotseat_mode then
+		for _, u in ipairs(b.enemy.units) do
+			if u.cooldown > 0 then u.cooldown = u.cooldown - 1 end
+		end
+		b.state = "aim"
+		b.turn = "enemy"
+		b.active_side = "enemy"
+		local idx = M.first_ready_for(b.enemy.units)
+		if not idx then
+			M.finish(self, false)
+			return
+		end
+		b.selected_enemy = idx
+		M.select_unit(self, idx, true)
+		M.banner(self, i18n.t("p2_turn"))
+		M.update_hud(self)
+		return
+	end
+	b.state = "enemy"
+	b.turn = "enemy"
+	b.active_side = "enemy"
+	b.timer = constants.AI_DELAY
 	M.banner(self, i18n.t("enemy_turn"))
 	M.update_hud(self)
 end
@@ -1649,19 +1727,41 @@ end
 
 function M.finish(self, win)
 	local b = self.battle
-	b.state = "over"
 	b.winner = win and "player" or "enemy"
 	camera.set_zoom(1.0)
 	M.hide_aim_line(self)
 	M.hide_preview(self)
 	if win then
 		audio.play("win")
-		audio.music(nil)
+		local level_id = (b.level and b.level.id) or 1
+		local gain = math.floor((25 + level_id * 4 + ((b.level and b.level.boss) and 50 or 0)) * ((b.run and b.run.gold) or 1))
+		progress.add_gold(gain)
+		progress.set_best_level(level_id + 1)
+		msg.post("/gui_hud#gui", "hud_gold", { gold = progress.gold(), gain = gain })
+		audio.play("coins")
+		if not b.hotseat_mode and b.level and level_id < levels_db.count() then
+			local offers = perks_db.random_three()
+			b.perk_offers = offers
+			b.state = "perk"
+			local payload = {}
+			for i, p in ipairs(offers) do
+				payload[i] = { name = perks_db.name(p), desc = perks_db.desc(p) }
+			end
+			msg.post("/gui_hud#gui", "show_perks", { offers = payload })
+			M.update_hud(self)
+			return
+		end
 	else
 		audio.play("lose")
-		audio.music(nil)
 	end
-	msg.post("/gui_hud#gui", "battle_over", { win = win })
+	audio.music(nil)
+	b.state = "over"
+	msg.post("/gui_hud#gui", "battle_over", {
+		win = win,
+		winner = b.winner,
+		hotseat = b.hotseat_mode and true or false,
+		complete = win and b.level and b.level.id >= levels_db.count(),
+	})
 	M.update_hud(self)
 end
 
@@ -1680,7 +1780,7 @@ end
 
 function M.toggle_pause(self)
 	local b = self.battle
-	if b.state == "over" then return end
+	if b.state == "over" or b.state == "perk" then return end
 	b.paused = not b.paused
 	msg.post("/gui_hud#gui", "pause_changed", { paused = b.paused })
 end
@@ -1810,7 +1910,11 @@ function M.init(self)
 		timer = 0,
 		paused = false,
 		turn = "player",
+		active_side = "player",
 		selected = 1,
+		selected_enemy = 1,
+		hotseat_mode = false,
+		run = perks_db.new_run(),
 		hitstop = 0,
 		slowmo = 0,
 		time = 0,
@@ -1830,12 +1934,29 @@ function M.on_message(self, message_id, message, sender)
 		M.start_battle(self, b.level_index)
 	elseif message_id == hash("next_battle") then
 		M.start_battle(self, (b.level_index % levels_db.count()) + 1)
+	elseif message_id == hash("pick_perk") then
+		if b.state == "perk" and b.perk_offers then
+			local p = b.perk_offers[message.index or 1]
+			if p then
+				p.apply(b.run)
+				table.insert(b.run.perks, p.id)
+			end
+			b.perk_offers = nil
+			M.start_battle(self, (b.level_index % levels_db.count()) + 1)
+		end
+	elseif message_id == hash("toggle_hotseat") then
+		b.hotseat_mode = not b.hotseat_mode
+		if b.hotseat_mode then b.run = perks_db.new_run() end
+		b.paused = false
+		M.start_battle(self, b.level_index or 1)
 	elseif message_id == hash("hud_ready") then
 		M.update_hud(self)
 	end
 end
 
 return M
+
+
 
 
 

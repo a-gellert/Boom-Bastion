@@ -13,15 +13,29 @@ the enemy garrison.
 
 | Milestone | What it is | State |
 | --- | --- | --- |
-| **M0** | Cleanup + buildable skeleton | done |
-| **M1** | Procedural art pack + look-dev frame | done |
-| **M2** | Core battle: segmented walls, Pull & Release, gates, collapse | done |
-| **M3** | 8 units, 6 gates, AI, biomes, levels 1–10 | current |
-| M4 | Perks, meta progression, hotseat, levels 11–30 | planned |
-| M5 | Polish, i18n, Poki hooks, performance | planned |
+| M0 | Cleanup + buildable skeleton | done |
+| M1 | Procedural art pack + look-dev frame | done |
+| M2 | Core battle: segmented walls, Pull & Release, gates, collapse | done |
+| M3 | 8 units, 6 gates, AI, biomes, levels 1–10 | done |
+| **M4** | 30 levels / 6 biomes, perks, gold + meta, Hotseat 2P | done |
+| M5 | Polish, audio, balance, Poki hooks, performance | next |
 | M6 | Release bundle + store assets | planned |
 
-The old Worms-like prototype lives in git history (commit `c1d495c`); it was stripped in M0.
+## Features
+
+- **30 battles across 6 biomes** (meadow, dunes, frost, caldera, sky, night), bosses every 5th.
+- **Pull & Release** aiming with a rubber-band preview, dotted arc, power curve and aim zoom.
+- **Segmented walls**: bricks crack, break off, lose their path to the foundation and fall;
+  floors with too few bricks drop on the floor below and crush it.
+- **Physics juice**: chunks with spin and bounces, shockwave rings, hit flashes, screen shake,
+  hit stop, comic words, slow motion on the final kill.
+- **8 fighters** with different projectiles, splash, pierce and ranges; 4 in the squad.
+- **6 gate types**: x2, x3, fire, giant, pierce, speed — sometimes two per level.
+- **Hazards**: central hill, hanging explosive barrels, crosswind.
+- **12 roguelite perks** picked from three cards after each victory.
+- **Gold + meta upgrades** (wall fortify, power, vitality) saved in LocalStorage via `sys.save`.
+- **Local Hotseat 2P** on one screen, with the same pull controls for both castles.
+- **EN / RU / PT / TR**, 0 external dependencies, one atlas.
 
 ## Build and run
 
@@ -30,7 +44,7 @@ powershell -ExecutionPolicy Bypass -File tools/build.ps1
 powershell -ExecutionPolicy Bypass -File tools/serve.ps1
 ```
 
-Then open <http://127.0.0.1:8080/>.
+Open <http://127.0.0.1:8080/>.
 
 Headless smoke test (loads the build in Edge/Chrome, counts Lua/JS errors, saves screenshots):
 
@@ -38,44 +52,48 @@ Headless smoke test (loads the build in Edge/Chrome, counts Lua/JS errors, saves
 powershell -ExecutionPolicy Bypass -File tools/smoke.ps1 -Steps "wait:6;shot:boot"
 ```
 
-Bob and the JDK come from the installed Defold editor (`C:\Program Files (x86)\Defold`).
-Art is generated (no external packs): `node tools/gen_sprites.js` writes 116 PNGs, `main/assets/game.atlas`, `lua_modules/art_sizes.lua` and a contact sheet at `captures/art_sheet.png`. Build output is `bundle/web`, captures go to `captures/` — neither is committed.
+Art is generated: `node tools/gen_sprites.js` writes the PNGs, `main/assets/game.atlas`,
+`lua_modules/art_sizes.lua` and a contact sheet at `captures/art_sheet.png`.
+Build output is `bundle/web`, captures go to `captures/` — neither is committed.
 
-## Controls (M2)
+## Controls
 
 | Action | Input |
 | --- | --- |
-| Pause | `Esc` |
 | Aim / fire | Press anywhere, pull back, release |
+| Cancel shot | Right click or return into the dead zone |
 | Select unit | click a unit button or `1`–`4` |
-| Debug | `F8` next level, `F9` blast the enemy base, `F10` win (debug builds) |
+| Pause / meta | `Esc`, then the META button |
+| Hotseat 2P | the `2P` button (restarts the current level in 2-player mode) |
+| Debug (debug builds) | `F8` next level, `F9` blast the enemy base, `F10` win |
 
 ## Layout
 
 ```text
 game.project                 no dependencies; 1280x720
 main/
-  main.collection            main + scene + HUD + audio
-  main.script                orchestrator and input
+  main.collection            main + HUD + audio
+  main.script                orchestrator and input routing
   game.render_script         world pass (orthographic) + GUI pass
-  audio.go                   sound components
-  entities/scene/            M0 placeholder silhouettes
+  entities/sprite/           one generic scriptless sprite for everything
   assets/                    one atlas, fonts (Rubik, OFL), trimmed SFX
-gui/hud/                     HUD created in code
+gui/hud/                     HUD, perks, meta, result created in code
 lua_modules/
-  constants.lua              all tuning values
-  camera_controller.lua      fixed camera + shake/punch/zoom
-  i18n.lua                   EN/RU/PT/TR
-  audio.lua                  SFX/music with pitch variation
-input/game.input_binding     touch, Esc, unit slots 1-4
-tools/                       build / serve / smoke
+  battle.lua                 battle state machine, spawning, damage, juice
+  castle.lua                 rooms, bricks, BFS support and collapse
+  segmented_wall.lua         brick HP, damage states, blast carving
+  ballistics.lua  ai.lua     flight, preview, bot solutions
+  units_db.lua  levels_db.lua  biomes_db.lua  perks_db.lua
+  progress.lua               gold, meta upgrades, sys.save
+  constants.lua  camera_controller.lua  i18n.lua  audio.lua
+input/game.input_binding     touch, Esc, units 1-4, debug keys
+tools/                       build / serve / smoke / procedural art
 references/                  target art sheets (not shipped)
 ```
 
 ## Rules for contributors
 
 - Game first: no essays, no test suites for their own sake. Short decision records only.
-- Every milestone ends with a working build and a screenshot.
+- Every milestone ends with a working build, a screenshot and a commit to `main`.
 - No new dependencies without an explicit decision: the target is a 3–5 MB web build.
 - No `update()` scripts on bricks, projectiles or debris — one controller drives them.
-
