@@ -21,7 +21,7 @@ function init(self)
 	self.color_bit, self.depth_bit = buffer_bits()
 	self.clear_buffers = {}
 	if self.color_bit then
-		self.clear_buffers[self.color_bit] = vmath.vector4(0.06, 0.08, 0.14, 1)
+		self.clear_buffers[self.color_bit] = vmath.vector4(0.56, 0.72, 0.91, 1)
 	end
 	if self.depth_bit then
 		self.clear_buffers[self.depth_bit] = 1
@@ -91,5 +91,7 @@ end
 function on_message(self, message_id, message)
 	if message_id == MSG_SET_VIEW_PROJ and message.view then
 		self.view = message.view
+	elseif message_id == hash("set_clear_color") and message.color and self.color_bit then
+		self.clear_buffers[self.color_bit] = message.color
 	end
 end

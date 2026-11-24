@@ -5,6 +5,8 @@ local constants = require("lua_modules.constants")
 local camera = require("lua_modules.camera_controller")
 local audio = require("lua_modules.audio")
 local i18n = require("lua_modules.i18n")
+local progress = require("lua_modules.progress")
+local poki = require("lua_modules.poki")
 local battle = require("lua_modules.battle")
 
 function init(self)
@@ -13,8 +15,12 @@ function init(self)
 
 	msg.post(".", "acquire_input_focus")
 
+	progress.load()
+	audio.set_volume("music", progress.setting("music") == 1 and 1.0 or 0.0)
+	audio.set_volume("sfx", progress.setting("sfx") == 1 and 1.0 or 0.0)
 	audio.init()
 	i18n.detect_language()
+	poki.init()
 
 	camera.init()
 	camera.reset(constants.SCREEN_WIDTH * 0.5, constants.SCREEN_HEIGHT * 0.5)
@@ -24,7 +30,7 @@ function init(self)
 	audio.on_game_loaded()
 	audio.music("music_battle")
 
-	constants.log("boot ok · lang=" .. i18n.current_lang .. " · battle M2")
+	constants.log("boot ok · lang=" .. i18n.current_lang .. " · battle M5")
 end
 
 function update(self, dt)

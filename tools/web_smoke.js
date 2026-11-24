@@ -19,15 +19,19 @@ if (!BUNDLE || !OUT) {
   console.error('usage: node tools/web_smoke.js <bundle_dir> <out_dir> [--size=WxH] [--steps=...]');
   process.exit(2);
 }
-const opt = { size: '960x540', secs: '8', lang: '', steps: '', cfg: '' };
+const opt = { size: '960x540', secs: '8', lang: '', steps: '', cfg: '', poki: '' };
 for (const a of rest) {
   const m = a.match(/^--(\w+)=(.*)$/);
   if (m) opt[m[1]] = m[2];
 }
 const [VW, VH] = opt.size.split('x').map(Number);
+if (!Number.isFinite(VW) || !Number.isFinite(VH)) {
+  console.error('bad --size:', JSON.stringify(opt.size));
+  process.exit(2);
+}
 const PORT = 8760 + Math.floor(Math.random() * 400);
 const DBG_PORT = 9360 + Math.floor(Math.random() * 400);
-const BROWSER = [
+const BROWSER = process.env.SMOKE_BROWSER || [
   'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe',
   'C:/Program Files/Google/Chrome/Application/chrome.exe',
   '/usr/bin/google-chrome',
@@ -46,6 +50,11 @@ function patchedIndex() {
     const re = /(<script id=["']engine-setup["'][^>]*>)/;
     if (!re.test(html)) console.error('WARN: engine-setup script tag not found, parameters not injected');
     html = html.replace(re, `$1\nCUSTOM_PARAMETERS["engine_arguments"] = ${JSON.stringify(args)};`);
+  }
+  if (opt.poki) {
+    const re = /<\/head>/;
+    if (!re.test(html)) console.error('WARN: </head> not found, Poki mock not injected');
+    html = html.replace(re, '<script>window.BastionPokiTest = true;</script>\n</head>');
   }
   return html;
 }
@@ -74,25 +83,46 @@ const srv = http.createServer((req, res) => {
 });
 
 srv.listen(PORT, '127.0.0.1', async () => {
-  const userData = path.join(OUT, '_prof_' + PORT);
+  const userData = path.resolve(OUT, '_prof_' + PORT);
   const proc = spawn(BROWSER, [
     '--headless=new', '--disable-gpu', '--use-angle=swiftshader', '--enable-unsafe-swiftshader',
     '--autoplay-policy=no-user-gesture-required', `--remote-debugging-port=${DBG_PORT}`,
     `--window-size=${VW},${VH}`, `--user-data-dir=${userData}`,
     '--no-first-run', '--no-default-browser-check', `http://127.0.0.1:${PORT}/`,
   ], { stdio: 'ignore' });
+  console.error(`browser ${path.basename(BROWSER)} pid=${proc.pid} ui=${PORT} cdp=${DBG_PORT}`);
+  proc.on('error', e => console.error('browser error:', e.message));
+  proc.on('exit', (code, sig) => console.error('browser exit:', code, sig));
+
+  const killBrowser = () => {
+    if (!proc || proc.killed) return;
+    try {
+      if (process.platform === 'win32') {
+        spawn('taskkill', ['/pid', String(proc.pid), '/T', '/F'], { stdio: 'ignore' });
+      } else {
+        proc.kill('SIGKILL');
+      }
+    } catch {}
+  };
 
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   let ws;
+  let lastList = null;
+  let lastErr = null;
   for (let i = 0; i < 40; i++) {
     await sleep(250);
     try {
-      const list = await (await fetch(`http://127.0.0.1:${DBG_PORT}/json`)).json();
-      const page = list.find(t => t.type === 'page');
+      lastList = await (await fetch(`http://127.0.0.1:${DBG_PORT}/json`)).json();
+      const page = lastList.find(t => t.type === 'page');
       if (page) { ws = new WebSocket(page.webSocketDebuggerUrl); break; }
-    } catch {}
+    } catch (e) { lastErr = e; }
   }
-  if (!ws) { proc.kill(); srv.close(); console.error('CDP connect failed'); process.exit(1); }
+  if (!ws) {
+    killBrowser();
+    srv.close();
+    console.error('CDP connect failed', lastErr ? String(lastErr.message) : '', lastList ? JSON.stringify(lastList).slice(0, 300) : 'no /json');
+    process.exit(1);
+  }
 
   let msgId = 0;
   let errors = 0;
@@ -131,13 +161,13 @@ srv.listen(PORT, '127.0.0.1', async () => {
     console.log('shot:', p);
   };
   const evalJs = async expr => {
-    const r = await cdp('Runtime.evaluate', { expression: expr, returnByValue: true });
+    const r = await cdp('Runtime.evaluate', { expression: expr, returnByValue: true, awaitPromise: true });
     return r && r.result ? r.result.value : undefined;
   };
   const mouse = (type, x, y) => cdp('Input.dispatchMouseEvent', { type, x, y, button: 'left', clickCount: 1 });
   const KEYS = {
     Escape: 27, Space: 32, ArrowLeft: 37, ArrowUp: 38, ArrowRight: 39, ArrowDown: 40, Enter: 13,
-    F8: 119, F9: 120, F10: 121, KeyQ: 81, KeyA: 65, KeyD: 68, KeyW: 87, Digit1: 49, Digit2: 50, Backspace: 8,
+    F7: 118, F8: 119, F9: 120, F10: 121, KeyQ: 81, KeyA: 65, KeyD: 68, KeyW: 87, Digit1: 49, Digit2: 50, Backspace: 8,
   };
   const key = async (name, type) => {
     const code = KEYS[name] || name.toUpperCase().charCodeAt(0);
@@ -192,6 +222,10 @@ srv.listen(PORT, '127.0.0.1', async () => {
       } else if (cmd === 'hold') {
         const [k, secs] = arg.split(',');
         await key(k, 'keyDown'); await sleep(Number(secs) * 1000); await key(k, 'keyUp');
+      } else if (cmd === 'fps') {
+        const ms = Number(arg) || 2000;
+        const v = await evalJs(`new Promise(resolve => { let n = 0; const t0 = performance.now(); function f(){ n++; if (performance.now() - t0 < ${ms}) requestAnimationFrame(f); else resolve(n / ((performance.now() - t0) / 1000)); } requestAnimationFrame(f); })`);
+        console.log('fps:', typeof v === 'number' ? v.toFixed(1) : v);
       } else if (cmd === 'hide') console.log('visibility:', await setHidden(true));
       else if (cmd === 'show') console.log('visibility:', await setHidden(false));
       else if (cmd === 'js') console.log(`js ${arg} =>`, JSON.stringify(await evalJs(arg)));
@@ -200,9 +234,9 @@ srv.listen(PORT, '127.0.0.1', async () => {
   }
   console.log(`Lua/JS errors: ${errors}`);
   ws.close();
-  proc.kill();
+  killBrowser();
   srv.close();
-  await sleep(300);
+  await sleep(500);
   try { fs.rmSync(userData, { recursive: true, force: true }); } catch {}
   process.exit(errors ? 1 : 0);
 });

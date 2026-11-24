@@ -49,6 +49,10 @@ try {
     if (-not $index) {
         throw "Build finished but index.html was not found under $outDir"
     }
+    & node (Join-Path $root "tools\patch_bundle.js") $index.DirectoryName
+    if ($LASTEXITCODE -ne 0) {
+        throw "Web bundle patch failed with exit code $LASTEXITCODE"
+    }
     $sizeMb = [math]::Round(((Get-ChildItem $index.DirectoryName -Recurse -File | Measure-Object Length -Sum).Sum / 1MB), 2)
     Write-Host ""
     Write-Host "BUILD OK  ($sizeMb MB)" -ForegroundColor Green

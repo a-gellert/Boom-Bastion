@@ -4,7 +4,8 @@ param(
     [string]$Steps = "wait:6;shot:boot",
     [string]$Size = "1280x720",
     [string]$Out = "captures\smoke",
-    [string]$Cfg = ""
+    [string]$Cfg = "",
+    [switch]$Poki
 )
 
 $ErrorActionPreference = "Stop"
@@ -23,6 +24,7 @@ $args = @(
     "--steps=$Steps"
 )
 if ($Cfg -ne "") { $args += "--cfg=$Cfg" }
+if ($Poki) { $args += "--poki=1" }
 
 Push-Location $root
 try {

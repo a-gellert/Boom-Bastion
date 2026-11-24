@@ -19,8 +19,17 @@ local SFX = {
 }
 
 local MUSIC_GAIN = {
-	music_menu = 1.0,
+	music_menu = 0.42,
 	music_battle = 0.65,
+}
+
+-- The menu theme aliases the battle track at a slower, quieter setting: it keeps
+-- the bundle under 5 MB until the M6 audio pass adds a dedicated menu loop.
+local MUSIC_ALIAS = {
+	music_menu = "music_battle",
+}
+local MUSIC_SPEED = {
+	music_menu = 0.86,
 }
 
 local MIN_GAP = 0.05
@@ -94,6 +103,10 @@ function M.play(name, opts)
 	})
 end
 
+local function music_component(name)
+	return MUSIC_ALIAS[name] or name
+end
+
 function M.music(name)
 	if not game_loaded then
 		pending_music = name
@@ -101,11 +114,14 @@ function M.music(name)
 	end
 	if name == current_music then return end
 	if current_music then
-		pcall(sound.stop, AUDIO_GO .. current_music)
+		pcall(sound.stop, AUDIO_GO .. music_component(current_music))
 	end
 	current_music = name
 	if name and not music_paused then
-		pcall(sound.play, AUDIO_GO .. name, { gain = MUSIC_GAIN[name] or 1.0 })
+		pcall(sound.play, AUDIO_GO .. music_component(name), {
+			gain = MUSIC_GAIN[name] or 1.0,
+			speed = MUSIC_SPEED[name] or 1.0,
+		})
 	end
 end
 
@@ -121,7 +137,7 @@ end
 
 function M.pause_all()
 	if current_music and not music_paused then
-		pcall(sound.stop, AUDIO_GO .. current_music)
+		pcall(sound.stop, AUDIO_GO .. music_component(current_music))
 		music_paused = true
 	end
 end
@@ -130,7 +146,10 @@ function M.resume_all()
 	if not music_paused then return end
 	music_paused = false
 	if game_loaded and current_music then
-		pcall(sound.play, AUDIO_GO .. current_music, { gain = MUSIC_GAIN[current_music] or 1.0 })
+		pcall(sound.play, AUDIO_GO .. music_component(current_music), {
+			gain = MUSIC_GAIN[current_music] or 1.0,
+			speed = MUSIC_SPEED[current_music] or 1.0,
+		})
 	end
 end
 

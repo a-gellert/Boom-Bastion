@@ -11,11 +11,18 @@ local levels_db = require("lua_modules.levels_db")
 local biomes_db = require("lua_modules.biomes_db")
 local perks_db = require("lua_modules.perks_db")
 local progress = require("lua_modules.progress")
+local poki = require("lua_modules.poki")
 local Castle = require("lua_modules.castle")
 local wall = require("lua_modules.segmented_wall")
 local ballistics = require("lua_modules.ballistics")
 local ai = require("lua_modules.ai")
 local art_sizes = require("lua_modules.art_sizes")
+
+local IS_DEBUG = false
+if sys and sys.get_engine_info then
+	local ok, info = pcall(sys.get_engine_info)
+	IS_DEBUG = ok and info and info.is_debug or false
+end
 
 local M = {}
 
@@ -125,7 +132,6 @@ function M.build_arena(self)
 		b.arena_refs[key] = { id = id, url = url }
 	end
 
-	local SKY_TOP = vmath.vector4(0.56, 0.72, 0.91, 1)
 	local SKY_BOTTOM = vmath.vector4(1.0, 0.85, 0.66, 1)
 	local SUN = vmath.vector4(1.0, 0.89, 0.64, 1)
 	local SUN_GLOW = vmath.vector4(1.0, 0.79, 0.42, 0.55)
@@ -138,8 +144,7 @@ function M.build_arena(self)
 	local GRASS_TOP = vmath.vector4(0.36, 0.60, 0.16, 1)
 
 	local id, url
-	id, url = arena("white_pixel", 640, 360, -0.99, 1800, 950, SKY_TOP)
-	ref("sky", id, url)
+	-- The sky top is the render clear colour, so no full-screen quad is needed.
 	id, url = arena("bg_gradient", 640, 360, -0.98, 1800, 950, SKY_BOTTOM)
 	ref("gradient", id, url)
 	id, url = arena("fx_glow", 1010, 560, -0.975, 280, 280, SUN_GLOW)
@@ -183,7 +188,7 @@ function M.apply_biome(self, biome_id)
 		local r = b.arena_refs[key]
 		if r then go.set(r.url, "tint", color) end
 	end
-	tint("sky", p.sky_top)
+	msg.post("@render:", "set_clear_color", { color = p.sky_top })
 	tint("gradient", p.sky_bottom)
 	tint("sun_glow", vmath.vector4(p.sun.x, p.sun.y, p.sun.z, 0.55))
 	tint("sun", p.sun)
@@ -309,6 +314,10 @@ function M.start_battle(self, level_index)
 	b.selected = 1
 	b.selected_enemy = 1
 	b.winner = nil
+	b.player_turns = 0
+	b.last_stars = 0
+	b.last_gain = 0
+	b.campaign_complete = false
 	b.paused = false
 	b.hitstop = 0
 	b.aiming = false
@@ -342,8 +351,9 @@ function M.start_battle(self, level_index)
 	M.update_hud(self)
 	msg.post("/gui_hud#gui", "battle_restart")
 	msg.post("/gui_hud#gui", "hud_gold", { gold = progress.gold() })
-	M.banner(self, "LEVEL " .. tostring(level.id) .. " · " .. level.name)
+	M.banner(self, i18n.t("level") .. " " .. tostring(level.id))
 	audio.music("music_battle")
+	poki.gameplay_start()
 end
 
 function M.apply_run(self)
@@ -1387,21 +1397,30 @@ end
 -- ------------------------------------------------------------------ input
 function M.on_input(self, action_id, action)
 	local b = self.battle
+	if IS_DEBUG and action_id == hash("debug_ad") and action.pressed then
+		if poki.commercial_break() then audio.set_ad_mute(true) end
+		return true
+	end
+	if IS_DEBUG and action_id == hash("debug_lose") and action.pressed then
+		for _, u in ipairs(b.player.units) do M.kill_unit(self, u) end
+		M.finish(self, false)
+		return true
+	end
 	if b.paused or b.state == "over" then return false end
 	if action_id == hash("unit_1") and action.pressed then M.select_unit(self, 1) return true end
 	if action_id == hash("unit_2") and action.pressed then M.select_unit(self, 2) return true end
 	if action_id == hash("unit_3") and action.pressed then M.select_unit(self, 3) return true end
 	if action_id == hash("unit_4") and action.pressed then M.select_unit(self, 4) return true end
-	if action_id == hash("debug_b") and action.pressed then
+	if IS_DEBUG and action_id == hash("debug_b") and action.pressed then
 		for _, u in ipairs(b.enemy.units) do M.kill_unit(self, u) end
 		M.finish(self, true)
 		return true
 	end
-	if action_id == hash("debug_a") and action.pressed then
+	if IS_DEBUG and action_id == hash("debug_a") and action.pressed then
 		M.debug_blast(self, b.enemy.ax - 104, constants.CASTLE_BOTTOM + 4 * constants.CELL_H, 42, 130)
 		return true
 	end
-	if action_id == hash("debug_jump") and action.pressed then
+	if IS_DEBUG and action_id == hash("debug_jump") and action.pressed then
 		M.start_battle(self, (b.level_index % levels_db.count()) + 1)
 		return true
 	end
@@ -1668,6 +1687,7 @@ end
 
 function M.start_player_turn(self)
 	local b = self.battle
+	b.player_turns = (b.player_turns or 0) + 1
 	for _, u in ipairs(b.player.units) do
 		if u.cooldown > 0 then u.cooldown = u.cooldown - 1 end
 	end
@@ -1725,20 +1745,44 @@ function M.enemy_fire(self)
 	b.state = "flying"
 end
 
+local function par_turns(level)
+	if level.par then return level.par end
+	if level.boss then return 6 + math.floor((level.id - 5) / 10) end
+	return 3 + math.floor((level.id - 1) / 6)
+end
+
+local function rate_turns(level, turns)
+	local par = par_turns(level)
+	if turns <= par then return 3 end
+	if turns <= par + 2 then return 2 end
+	return 1
+end
+
 function M.finish(self, win)
 	local b = self.battle
 	b.winner = win and "player" or "enemy"
 	camera.set_zoom(1.0)
 	M.hide_aim_line(self)
 	M.hide_preview(self)
+	poki.gameplay_stop()
+	local level_id = (b.level and b.level.id) or 1
+	local stars = 0
+	local gain = 0
 	if win then
 		audio.play("win")
-		local level_id = (b.level and b.level.id) or 1
-		local gain = math.floor((25 + level_id * 4 + ((b.level and b.level.boss) and 50 or 0)) * ((b.run and b.run.gold) or 1))
-		progress.add_gold(gain)
-		progress.set_best_level(level_id + 1)
-		msg.post("/gui_hud#gui", "hud_gold", { gold = progress.gold(), gain = gain })
-		audio.play("coins")
+		poki.happy_time()
+		stars = rate_turns(b.level or { id = 1 }, b.player_turns or 0)
+		b.last_stars = stars
+		if not b.hotseat_mode then
+			gain = math.floor((25 + level_id * 4 + ((b.level and b.level.boss) and 50 or 0) + stars * 5) * ((b.run and b.run.gold) or 1))
+			progress.add_gold(gain)
+			progress.set_best_level(math.min(levels_db.count(), level_id + 1))
+			progress.set_stars(level_id, stars)
+			msg.post("/gui_hud#gui", "hud_gold", { gold = progress.gold(), gain = gain })
+			audio.play("coins")
+		end
+		b.last_gain = gain
+		b.campaign_complete = (not b.hotseat_mode and b.level and level_id >= levels_db.count()) or false
 		if not b.hotseat_mode and b.level and level_id < levels_db.count() then
 			local offers = perks_db.random_three()
 			b.perk_offers = offers
@@ -1747,22 +1791,31 @@ function M.finish(self, win)
 			for i, p in ipairs(offers) do
 				payload[i] = { name = perks_db.name(p), desc = perks_db.desc(p) }
 			end
-			msg.post("/gui_hud#gui", "show_perks", { offers = payload })
+			msg.post("/gui_hud#gui", "show_perks", { offers = payload, stars = stars, gain = gain })
+			audio.music("music_menu")
 			M.update_hud(self)
+			poki.maybe_commercial(b.time)
+			if poki.ad_active() then audio.set_ad_mute(true) end
 			return
 		end
 	else
 		audio.play("lose")
 	end
-	audio.music(nil)
+	audio.music("music_menu")
 	b.state = "over"
 	msg.post("/gui_hud#gui", "battle_over", {
 		win = win,
 		winner = b.winner,
 		hotseat = b.hotseat_mode and true or false,
-		complete = win and b.level and b.level.id >= levels_db.count(),
+		complete = b.campaign_complete,
+		stars = stars,
+		gain = gain,
 	})
 	M.update_hud(self)
+	if win then
+		poki.maybe_commercial(b.time)
+		if poki.ad_active() then audio.set_ad_mute(true) end
+	end
 end
 
 function M.check_win(self)
@@ -1782,6 +1835,11 @@ function M.toggle_pause(self)
 	local b = self.battle
 	if b.state == "over" or b.state == "perk" then return end
 	b.paused = not b.paused
+	if b.paused then
+		poki.gameplay_stop()
+	else
+		poki.gameplay_start()
+	end
 	msg.post("/gui_hud#gui", "pause_changed", { paused = b.paused })
 end
 
@@ -1827,6 +1885,10 @@ end
 
 function M.update(self, dt)
 	local b = self.battle
+	local ad = poki.update(dt)
+	if ad == "ad_end" then
+		audio.set_ad_mute(false)
+	end
 	if b.paused then return end
 	if b.slowmo and b.slowmo > 0 then
 		b.slowmo = math.max(0, b.slowmo - dt)
@@ -1931,9 +1993,23 @@ function M.on_message(self, message_id, message, sender)
 	elseif message_id == hash("toggle_pause") then
 		M.toggle_pause(self)
 	elseif message_id == hash("restart_battle") then
-		M.start_battle(self, b.level_index)
+		if b.campaign_complete then
+			b.run = perks_db.new_run()
+			b.campaign_complete = false
+			M.start_battle(self, 1)
+		else
+			M.start_battle(self, b.level_index)
+		end
 	elseif message_id == hash("next_battle") then
 		M.start_battle(self, (b.level_index % levels_db.count()) + 1)
+	elseif message_id == hash("toggle_music") then
+		local on = progress.setting("music") == 0
+		progress.set_setting("music", on)
+		audio.set_volume("music", on and 1.0 or 0.0)
+	elseif message_id == hash("toggle_sfx") then
+		local on = progress.setting("sfx") == 0
+		progress.set_setting("sfx", on)
+		audio.set_volume("sfx", on and 1.0 or 0.0)
 	elseif message_id == hash("pick_perk") then
 		if b.state == "perk" and b.perk_offers then
 			local p = b.perk_offers[message.index or 1]

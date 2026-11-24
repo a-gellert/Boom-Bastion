@@ -915,7 +915,6 @@ make('ui_star', 22, 22, (cv) => {
 make('ui_card', 76, 100, (cv) => {
   outlined(cv, rrect(38, 50, 72, 96, 12), vgrad(PAL.cream, PAL.creamDark, 100), 3);
   cv.paint(rrect(38, 16, 64, 22, 8), vgrad(PAL.blueTop, PAL.blueBot, 100));
-  cv.paint(rrect(38, 50, 58, 4, 2), withAlpha(WHITE, 0.4));
 });
 make('ui_arrow_left', 26, 26, (cv) => {
   outlined(cv, poly([[17, 4], [9, 13], [17, 22]]), solid(WHITE), 2.2);
@@ -1050,6 +1049,26 @@ for (const p of placed) {
   }
 }
 savePNG(SHEET, SHEET_W, SHEET_H, sheet.toRGBA());
+
+// ---------------------------------------------------------------- app icon
+// 512x512 PWA/favicon tile: gold star inside a ring on a dark navy squircle.
+{
+  const S = 512;
+  const cv = new Canvas(S, S);
+  cv.paint(rrect(S / 2, S / 2, S, S, 108), vgrad(hex('#23305A'), hex('#0A0F1E'), S));
+  cv.paint(rrect(S / 2, S / 2, 464, 464, 92), withAlpha(PAL.goldBot, 0.95));
+  cv.paint(rrect(S / 2, S / 2, 448, 448, 84), vgrad(hex('#17203A'), hex('#0B1120'), S));
+  cv.paint(ring(S / 2, 248, 168, 22), withAlpha(PAL.goldBot, 0.9));
+  cv.paint(ring(S / 2, 248, 168, 10), withAlpha(PAL.goldTop, 0.85));
+  const star = starShape(S / 2, 250, 138, 58, 5);
+  cv.paint(offsetShape(star, 12), solid(OUTLINE));
+  cv.paint(star, vgrad(PAL.goldTop, PAL.goldBot, 420));
+  cv.paint(starShape(S / 2, 244, 96, 40, 5), withAlpha(WHITE, 0.16));
+  for (const [x, y, r] of [[118, 132, 7], [398, 122, 5], [414, 372, 8], [104, 356, 5]]) {
+    cv.paint(circle(x, y, r), withAlpha(PAL.goldTop, 0.85));
+  }
+  savePNG(path.join(ROOT, 'main', 'assets', 'icon.png'), S, S, cv.toRGBA());
+}
 
 console.log(`sprites: ${sprites.length}`);
 console.log(`output:  ${ART}`);

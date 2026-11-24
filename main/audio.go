@@ -63,10 +63,6 @@ components {
   component: "/main/assets/sounds/tick.sound"
 }
 components {
-  id: "music_menu"
-  component: "/main/assets/sounds/music_menu.sound"
-}
-components {
   id: "music_battle"
   component: "/main/assets/sounds/music_battle.sound"
 }

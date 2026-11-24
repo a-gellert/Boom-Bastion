@@ -35,6 +35,18 @@ key_trigger {
   action: "unit_4"
 }
 key_trigger {
+  input: KEY_F6
+  action: "debug_lose"
+}
+key_trigger {
+  input: KEY_L
+  action: "debug_lose"
+}
+key_trigger {
+  input: KEY_F7
+  action: "debug_ad"
+}
+key_trigger {
   input: KEY_F8
   action: "debug_jump"
 }
