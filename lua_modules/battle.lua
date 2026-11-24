@@ -272,11 +272,19 @@ local function roster(roles, spots)
 	return out
 end
 
-function M.start_battle(self, level_index)
+function M.start_battle(self, level_index, endless)
 	local b = self.battle
-	local level = levels_db.get(level_index or b.level_index or 1)
+	b.endless_mode = endless and true or false
+	local level
+	if b.endless_mode then
+		b.wave = math.max(1, math.floor(level_index or b.wave or 1))
+		level = levels_db.endless(b.wave)
+	else
+		b.wave = 0
+		level = levels_db.get(level_index or b.level_index or 1)
+	end
 	b.level = level
-	b.level_index = level.id
+	b.level_index = b.endless_mode and b.wave or level.id
 	b.wind = level.wind or 0
 	b.hill = nil
 	b.hazards = {}
@@ -345,13 +353,21 @@ function M.start_battle(self, level_index)
 	M.apply_biome(self, level.biome)
 	M.spawn_hazards(self, level)
 	M.apply_run(self)
-	progress.set_best_level(level.id)
+	if not b.endless_mode then
+		progress.set_best_level(level.id)
+	end
 
 	M.select_unit(self, 1, true)
 	M.update_hud(self)
 	msg.post("/gui_hud#gui", "battle_restart")
 	msg.post("/gui_hud#gui", "hud_gold", { gold = progress.gold() })
-	M.banner(self, i18n.t("level") .. " " .. tostring(level.id))
+	if b.endless_mode then
+		local text = i18n.t("wave") .. " " .. tostring(b.wave)
+		if level.boss then text = text .. " · " .. i18n.t("boss") end
+		M.banner(self, text)
+	else
+		M.banner(self, i18n.t("level") .. " " .. tostring(level.id))
+	end
 	audio.music("music_battle")
 	poki.gameplay_start()
 end
@@ -601,15 +617,26 @@ function M.update_hud(self)
 			selected = (list[selected] == u),
 		})
 	end
+	local level_name = b.level and b.level.name or ""
+	local level_id = b.level and b.level.id or 1
+	if b.endless_mode then
+		level_id = 0
+		level_name = i18n.t("wave") .. " " .. tostring(b.wave or 1)
+		if b.level and b.level.boss then
+			level_name = level_name .. " · " .. i18n.t("boss")
+		end
+	end
 	msg.post("/gui_hud#gui", "hud_state", {
 		turn = b.turn,
 		side = side,
 		hotseat = b.hotseat_mode and true or false,
+		endless = b.endless_mode and true or false,
+		wave = b.wave or 0,
 		selected = selected,
 		units = rows,
 		state = b.state,
-		level_id = b.level and b.level.id or 1,
-		level_name = b.level and b.level.name or "",
+		level_id = level_id,
+		level_name = level_name,
 	})
 end
 
@@ -1406,6 +1433,17 @@ function M.on_input(self, action_id, action)
 		M.finish(self, false)
 		return true
 	end
+	if IS_DEBUG and action_id == hash("debug_endless") and action.pressed then
+		b.run = perks_db.new_run()
+		b.hotseat_mode = false
+		M.start_battle(self, 1, true)
+		return true
+	end
+	if IS_DEBUG and action_id == hash("debug_hud") and action.pressed then
+		b.hud_hidden = not b.hud_hidden
+		msg.post("/gui_hud#gui", b.hud_hidden and "disable" or "enable")
+		return true
+	end
 	if b.paused or b.state == "over" then return false end
 	if action_id == hash("unit_1") and action.pressed then M.select_unit(self, 1) return true end
 	if action_id == hash("unit_2") and action.pressed then M.select_unit(self, 2) return true end
@@ -1421,7 +1459,11 @@ function M.on_input(self, action_id, action)
 		return true
 	end
 	if IS_DEBUG and action_id == hash("debug_jump") and action.pressed then
-		M.start_battle(self, (b.level_index % levels_db.count()) + 1)
+		if b.endless_mode then
+			M.start_battle(self, (b.wave or 1) + 1, true)
+		else
+			M.start_battle(self, (b.level_index % levels_db.count()) + 1)
+		end
 		return true
 	end
 	if action_id == hash("touch") then
@@ -1766,6 +1808,7 @@ function M.finish(self, win)
 	M.hide_preview(self)
 	poki.gameplay_stop()
 	local level_id = (b.level and b.level.id) or 1
+	local score_id = b.endless_mode and (b.wave or 1) or level_id
 	local stars = 0
 	local gain = 0
 	if win then
@@ -1774,16 +1817,20 @@ function M.finish(self, win)
 		stars = rate_turns(b.level or { id = 1 }, b.player_turns or 0)
 		b.last_stars = stars
 		if not b.hotseat_mode then
-			gain = math.floor((25 + level_id * 4 + ((b.level and b.level.boss) and 50 or 0) + stars * 5) * ((b.run and b.run.gold) or 1))
+			gain = math.floor((25 + score_id * 4 + ((b.level and b.level.boss) and 50 or 0) + stars * 5) * ((b.run and b.run.gold) or 1))
 			progress.add_gold(gain)
-			progress.set_best_level(math.min(levels_db.count(), level_id + 1))
-			progress.set_stars(level_id, stars)
+			if b.endless_mode then
+				progress.set_best_wave(b.wave or 1)
+			else
+				progress.set_best_level(math.min(levels_db.count(), level_id + 1))
+				progress.set_stars(level_id, stars)
+			end
 			msg.post("/gui_hud#gui", "hud_gold", { gold = progress.gold(), gain = gain })
 			audio.play("coins")
 		end
 		b.last_gain = gain
-		b.campaign_complete = (not b.hotseat_mode and b.level and level_id >= levels_db.count()) or false
-		if not b.hotseat_mode and b.level and level_id < levels_db.count() then
+		b.campaign_complete = (not b.hotseat_mode and not b.endless_mode and b.level and level_id >= levels_db.count()) or false
+		if not b.hotseat_mode and (b.endless_mode or (b.level and level_id < levels_db.count())) then
 			local offers = perks_db.random_three()
 			b.perk_offers = offers
 			b.state = "perk"
@@ -1791,7 +1838,13 @@ function M.finish(self, win)
 			for i, p in ipairs(offers) do
 				payload[i] = { name = perks_db.name(p), desc = perks_db.desc(p) }
 			end
-			msg.post("/gui_hud#gui", "show_perks", { offers = payload, stars = stars, gain = gain })
+			msg.post("/gui_hud#gui", "show_perks", {
+				offers = payload,
+				stars = stars,
+				gain = gain,
+				endless = b.endless_mode and true or false,
+				wave = b.wave or 0,
+			})
 			audio.music("music_menu")
 			M.update_hud(self)
 			poki.maybe_commercial(b.time)
@@ -1807,6 +1860,9 @@ function M.finish(self, win)
 		win = win,
 		winner = b.winner,
 		hotseat = b.hotseat_mode and true or false,
+		endless = b.endless_mode and true or false,
+		wave = b.wave or 0,
+		best_wave = progress.best_wave(),
 		complete = b.campaign_complete,
 		stars = stars,
 		gain = gain,
@@ -1976,6 +2032,8 @@ function M.init(self)
 		selected = 1,
 		selected_enemy = 1,
 		hotseat_mode = false,
+		endless_mode = false,
+		wave = 0,
 		run = perks_db.new_run(),
 		hitstop = 0,
 		slowmo = 0,
@@ -1993,7 +2051,10 @@ function M.on_message(self, message_id, message, sender)
 	elseif message_id == hash("toggle_pause") then
 		M.toggle_pause(self)
 	elseif message_id == hash("restart_battle") then
-		if b.campaign_complete then
+		if b.endless_mode then
+			b.run = perks_db.new_run()
+			M.start_battle(self, 1, true)
+		elseif b.campaign_complete then
 			b.run = perks_db.new_run()
 			b.campaign_complete = false
 			M.start_battle(self, 1)
@@ -2002,6 +2063,11 @@ function M.on_message(self, message_id, message, sender)
 		end
 	elseif message_id == hash("next_battle") then
 		M.start_battle(self, (b.level_index % levels_db.count()) + 1)
+	elseif message_id == hash("start_endless") then
+		b.run = perks_db.new_run()
+		b.hotseat_mode = false
+		b.paused = false
+		M.start_battle(self, 1, true)
 	elseif message_id == hash("toggle_music") then
 		local on = progress.setting("music") == 0
 		progress.set_setting("music", on)
@@ -2018,13 +2084,20 @@ function M.on_message(self, message_id, message, sender)
 				table.insert(b.run.perks, p.id)
 			end
 			b.perk_offers = nil
-			M.start_battle(self, (b.level_index % levels_db.count()) + 1)
+			if b.endless_mode then
+				M.start_battle(self, (b.wave or 1) + 1, true)
+			else
+				M.start_battle(self, (b.level_index % levels_db.count()) + 1)
+			end
 		end
 	elseif message_id == hash("toggle_hotseat") then
+		local target = b.endless_mode and 1 or (b.level_index or 1)
 		b.hotseat_mode = not b.hotseat_mode
 		if b.hotseat_mode then b.run = perks_db.new_run() end
+		b.endless_mode = false
+		b.wave = 0
 		b.paused = false
-		M.start_battle(self, b.level_index or 1)
+		M.start_battle(self, target)
 	elseif message_id == hash("hud_ready") then
 		M.update_hud(self)
 	end

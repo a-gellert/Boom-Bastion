@@ -5,6 +5,7 @@ param(
     [string]$Size = "1280x720",
     [string]$Out = "captures\smoke",
     [string]$Cfg = "",
+    [string]$Lang = "",
     [switch]$Poki
 )
 
@@ -24,6 +25,7 @@ $args = @(
     "--steps=$Steps"
 )
 if ($Cfg -ne "") { $args += "--cfg=$Cfg" }
+if ($Lang -ne "") { $args += "--lang=$Lang" }
 if ($Poki) { $args += "--poki=1" }
 
 Push-Location $root

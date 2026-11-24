@@ -191,10 +191,14 @@ function init(self)
 	self.result_meta_btn = icon("ui_btn_dark", 640, 215, 240, 66)
 	slice9(self.result_meta_btn, 14)
 	local result_meta_txt = label("label", i18n.t("meta_title"), 640, 215, WHITE, 0.78)
+	self.endless_btn = icon("ui_btn_dark", 640, 140, 420, 60)
+	slice9(self.endless_btn, 14)
+	self.endless_txt = label("label", i18n.t("endless"), 640, 140, WHITE, 0.62)
 	self.result_nodes = {
 		res_dim, self.result_title, self.result_gain,
 		self.result_stars[1], self.result_stars[2], self.result_stars[3],
 		self.retry_btn, self.result_btn_text, self.result_meta_btn, result_meta_txt,
+		self.endless_btn, self.endless_txt,
 	}
 	set_enabled_all(self.result_nodes, false)
 	self.result_win = false
@@ -205,14 +209,14 @@ function init(self)
 
 	-- perk cards
 	local perk_dim = box(640, 360, 1280, 720, DIM)
-	local perk_title = label("title", i18n.t("perks_title"), 640, 632, GOLD)
+	self.perk_title = label("title", i18n.t("perks_title"), 640, 632, GOLD)
 	self.perk_stars = star_row(580, 40, 50)
 	self.perk_gain = label("label", "", 640, 538, GOLD, 0.58)
 	self.perk_cards = {}
 	self.perk_card_bg = {}
 	self.perk_card_name = {}
 	self.perk_card_desc = {}
-	local card_nodes = { perk_dim, perk_title, self.perk_gain, self.perk_stars[1], self.perk_stars[2], self.perk_stars[3] }
+	local card_nodes = { perk_dim, self.perk_title, self.perk_gain, self.perk_stars[1], self.perk_stars[2], self.perk_stars[3] }
 	for i = 1, 3 do
 		local x = 380 + (i - 1) * 260
 		local bg = icon("ui_card", x, 340, 240, 330)
@@ -345,6 +349,11 @@ function on_input(self, action_id, action)
 		return false
 	end
 	if self.result_open then
+		if gui.pick_node(self.endless_btn, action.x, action.y) then
+			audio.play_click()
+			msg.post("/main#main", "start_endless")
+			return true
+		end
 		if gui.pick_node(self.retry_btn, action.x, action.y) then
 			audio.play_click()
 			msg.post("/main#main", "restart_battle")
@@ -524,9 +533,18 @@ function on_message(self, message_id, message, sender)
 			gui.set_text(self.perk_card_desc[i], o and o.desc or "")
 		end
 		self.perks_open = true
+		gui.set_enabled(self.banner, false)
+		gui.set_enabled(self.banner_text, false)
 		set_enabled_all(self.perk_nodes, true)
 		set_stars(self.perk_stars, message.stars or 0)
 		gui.set_text(self.perk_gain, (message.gain or 0) > 0 and ("+" .. tostring(message.gain) .. " " .. i18n.t("gold")) or "")
+		if message.endless then
+			gui.set_text(self.perk_title, i18n.t("wave") .. " " .. tostring(message.wave or 1) .. " · " .. i18n.t("perks_title"))
+			gui.set_scale(self.perk_title, vmath.vector3(0.78, 0.78, 1))
+		else
+			gui.set_text(self.perk_title, i18n.t("perks_title"))
+			gui.set_scale(self.perk_title, vmath.vector3(1, 1, 1))
+		end
 
 	elseif message_id == hash("hud_gold") then
 		self.gold = message.gold or progress.gold()
@@ -548,8 +566,12 @@ function on_message(self, message_id, message, sender)
 	elseif message_id == hash("battle_over") then
 		self.result_open = true
 		self.result_win = message.win and true or false
+		gui.set_enabled(self.banner, false)
+		gui.set_enabled(self.banner_text, false)
 		local title = i18n.t("defeat")
-		if message.complete then
+		if message.endless then
+			title = i18n.t("run_over")
+		elseif message.complete then
 			title = i18n.t("campaign_complete")
 		elseif message.hotseat then
 			title = (message.winner == "player") and i18n.t("p1_wins") or i18n.t("p2_wins")
@@ -558,11 +580,20 @@ function on_message(self, message_id, message, sender)
 		end
 		gui.set_text(self.result_title, title)
 		gui.set_color(self.result_title, (message.win or message.complete) and GOLD or vmath.vector4(1, 0.45, 0.4, 1))
-		gui.set_text(self.result_btn_text, i18n.t(message.complete and "new_run" or "retry"))
-		local gain = message.complete and 0 or (message.gain or 0)
-		gui.set_text(self.result_gain, gain > 0 and ("+" .. tostring(gain) .. " " .. i18n.t("gold")) or "")
+		local btn_key = message.endless and "endless_again" or (message.complete and "new_run" or "retry")
+		gui.set_text(self.result_btn_text, i18n.t(btn_key))
+		if message.endless then
+			local best = message.best_wave or 0
+			gui.set_text(self.result_gain, best > 0 and i18n.t("best_wave", { n = best }) or (i18n.t("wave") .. " " .. tostring(message.wave or 1)))
+		else
+			local gain = message.complete and 0 or (message.gain or 0)
+			gui.set_text(self.result_gain, gain > 0 and ("+" .. tostring(gain) .. " " .. i18n.t("gold")) or "")
+		end
 		set_enabled_all(self.result_nodes, true)
-		set_stars(self.result_stars, message.hotseat and 0 or (message.stars or 0))
+		local show_endless = message.complete and true or false
+		gui.set_enabled(self.endless_btn, show_endless)
+		gui.set_enabled(self.endless_txt, show_endless)
+		set_stars(self.result_stars, (message.hotseat or message.endless) and 0 or (message.stars or 0))
 
 	elseif message_id == hash("battle_restart") then
 		self.result_open = false

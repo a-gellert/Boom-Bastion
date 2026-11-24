@@ -25,6 +25,7 @@ local DEFAULTS = {
 	power = 0,
 	vitality = 0,
 	best_level = 1,
+	best_wave = 0,
 	music = 1,
 	sfx = 1,
 }
@@ -152,6 +153,18 @@ function M.total_stars()
 	local total = 0
 	for _, v in pairs(M.load().stars or {}) do total = total + (tonumber(v) or 0) end
 	return total
+end
+
+function M.best_wave()
+	return tonumber(M.load().best_wave) or 0
+end
+
+function M.set_best_wave(wave)
+	wave = math.max(0, math.floor(wave or 0))
+	if wave > M.best_wave() then
+		M.data.best_wave = wave
+		M.save()
+	end
 end
 
 return M

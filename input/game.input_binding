@@ -35,6 +35,14 @@ key_trigger {
   action: "unit_4"
 }
 key_trigger {
+  input: KEY_5
+  action: "debug_endless"
+}
+key_trigger {
+  input: KEY_H
+  action: "debug_hud"
+}
+key_trigger {
   input: KEY_F6
   action: "debug_lose"
 }

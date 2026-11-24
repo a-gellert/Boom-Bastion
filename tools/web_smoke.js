@@ -56,6 +56,9 @@ function patchedIndex() {
     if (!re.test(html)) console.error('WARN: </head> not found, Poki mock not injected');
     html = html.replace(re, '<script>window.BastionPokiTest = true;</script>\n</head>');
   }
+  if (opt.lang) {
+    html = html.replace('<head>', `<head>\n<script>Object.defineProperty(navigator, 'language', { get: function () { return '${opt.lang}'; } });</script>`);
+  }
   return html;
 }
 

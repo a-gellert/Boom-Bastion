@@ -1,5 +1,5 @@
 -- lua_modules/levels_db.lua
--- Ten campaign battles: rosters, gates, hazards, armor and bot accuracy.
+-- Campaign battles plus the deterministic endless-wave generator.
 
 local M = {}
 
@@ -207,6 +207,56 @@ end
 function M.get(index)
 	index = math.max(1, math.min(#M.LIST, index or 1))
 	return M.LIST[index]
+end
+
+-- Endless: six biomes cycle, squads rotate, every fifth wave is a boss.
+-- Deterministic per wave so restarts and tests see the same battle.
+local ENDLESS_BIOMES = { "meadow", "desert", "frost", "volcano", "sky", "night" }
+local ENDLESS_SQUADS = { R1, R2, R3, R4, R5 }
+local ENDLESS_ENEMIES = { E1, E2, E3 }
+local ENDLESS_GATES = { "x2", "x3", "fire", "speed", "pierce", "giant" }
+
+function M.endless(wave)
+	wave = math.max(1, math.floor(wave or 1))
+	local boss = (wave % 5) == 0
+	local gates = {}
+	local count = (boss or wave % 3 == 0) and 2 or 1
+	for i = 1, count do
+		local g = ENDLESS_GATES[((wave + i * 2) % #ENDLESS_GATES) + 1]
+		if wave == 1 then g = "x2"
+		elseif wave < 3 and (g == "giant" or g == "pierce") then g = "x2" end
+		gates[i] = {
+			type = g,
+			x = (i == 1) and (600 + (wave * 11) % 80) or (760 + (wave * 7) % 60),
+			y = (i == 1) and (400 + (wave * 13) % 50) or (510 + (wave * 5) % 40),
+		}
+	end
+
+	local hazard = nil
+	if wave >= 3 then
+		hazard = (wave % 4 < 2) and "barrels" or "hill"
+	end
+
+	local wind = nil
+	if wave >= 8 and wave % 3 == 0 then
+		wind = ((wave % 2 == 0) and 1 or -1) * (45 + (wave % 4) * 10)
+	end
+
+	return {
+		id = 1000 + wave,
+		wave = wave,
+		endless = true,
+		boss = boss,
+		biome = ENDLESS_BIOMES[((wave - 1) % #ENDLESS_BIOMES) + 1],
+		name = "WAVE " .. tostring(wave),
+		ai_error = math.max(0.9, 4.8 - wave * 0.12),
+		player = ENDLESS_SQUADS[((wave - 1) % #ENDLESS_SQUADS) + 1],
+		enemy = boss and E3 or ENDLESS_ENEMIES[((wave - 1) % #ENDLESS_ENEMIES) + 1],
+		gates = gates,
+		hazard = hazard,
+		wind = wind,
+		steel = boss or wave >= 4,
+	}
 end
 
 return M
